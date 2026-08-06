@@ -1,6 +1,7 @@
 import { html, css } from 'lit';
 
 import { sharedStyles } from './styles/shared-styles';
+import './components/app-request-change-modal.js';
 
 export function styles() {
   const elementStyles = css`
@@ -176,6 +177,54 @@ return html`
       font-size: 0.875rem;
     }
 
+    .dagster-health-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.5rem;
+      background-color: #ffdc00;
+      color: #022851;
+    }
+
+    .dagster-health-container a {
+      color: #022851;
+    }
+
+    .dagster-health-container[hidden] {
+      display: none;
+    }
+
+    .dagster-health-container .preview-info {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 700;
+    }
+
+    .cdl-health-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.5rem;
+      background: var(--secondary-rec-pool, #6FCFEB);
+      color: #022851;
+    }
+
+    .cdl-health-container a {
+      color: #022851;
+    }
+
+    .cdl-health-container[hidden] {
+      display: none;
+    }
+
+    .cdl-health-container .preview-info {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 700;
+    }
+
     </style>
   <!--
     Required for AppStateModel
@@ -236,6 +285,42 @@ return html`
     </a>
   </div>
 
+  <div ?hidden="${this.hideDagsterHealth || this.page !== 'expert' || (this.pageExpertId !== APP_CONFIG.user?.expertId && this.hideEdit)}" class="dagster-health-container">
+    <div class="preview-info">
+      <ucdlib-icon icon="ucdlib-experts:fa-exclamation-triangle"></ucdlib-icon>
+      <span>Profile editing is temporarily unavailable. For urgent changes, <a href="#" @click="${this._onDagsterDownContactUs}">contact us</a>.</span>
+    </div>
+  </div>
+
+  <app-request-change-modal
+    ?hidden="${!this.showDagsterDownModal}"
+    .visible="${this.showDagsterDownModal}"
+    .dagsterDown="${true}"
+    .expertId="${this.pageExpertId}"
+    .initialAvailability="${this.expertAvailability}"
+    .userName="${[APP_CONFIG.user?.given_name, APP_CONFIG.user?.family_name].filter(Boolean).join(' ') || APP_CONFIG.user?.preferred_username || ''}"
+    .userEmail="${APP_CONFIG.user?.email || ''}"
+    @cancel="${() => this.showDagsterDownModal = false}">
+  </app-request-change-modal>
+
+  <div ?hidden="${this.hideCdlHealth || this.page !== 'expert' || (this.pageExpertId !== APP_CONFIG.user?.expertId && this.hideEdit)}" class="cdl-health-container">
+    <div class="preview-info">
+      <span>Profile editing is unavailable for scheduled maintenance. For urgent changes, <a href="#" @click="${this._onCdlDownContactUs}">contact us</a>.</span>
+    </div>
+  </div>
+
+  <app-request-change-modal
+    ?hidden="${!this.showCdlDownModal}"
+    .visible="${this.showCdlDownModal}"
+    .dagsterDown="${true}"
+    .cdlDown="${true}"
+    .expertId="${this.pageExpertId}"
+    .initialAvailability="${this.expertAvailability}"
+    .userName="${[APP_CONFIG.user?.given_name, APP_CONFIG.user?.family_name].filter(Boolean).join(' ') || APP_CONFIG.user?.preferred_username || ''}"
+    .userEmail="${APP_CONFIG.user?.email || ''}"
+    @cancel="${() => this.showCdlDownModal = false}">
+  </app-request-change-modal>
+
   <div class="main-content">
     <ucdlib-pages
       selected="${this.page}"
@@ -248,6 +333,7 @@ return html`
         @loading="${(e) => this.loading = true}"
         @loaded="${(e) => this.loading = false}"
         @cancel-edit-expert="${this._editExpertClick}"
+        @dagster-health-issue="${this._onDagsterHealthIssue}" 
         id="expert"
         @show-404="${(e) => this.page = '404'}"
         @reset-scroll="${this._resetScroll}">

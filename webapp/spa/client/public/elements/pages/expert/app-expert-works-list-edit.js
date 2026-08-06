@@ -10,6 +10,7 @@ import "@ucd-lib/theme-elements/brand/ucd-theme-collapse/ucd-theme-collapse.js";
 import '../../utils/app-icons.js';
 import '../../components/modal-overlay.js';
 import '../../components/app-toast-popup.js';
+import '../../components/app-request-change-modal.js';
 
 import Citation from '../../../lib/utils/citation.js';
 
@@ -43,13 +44,20 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       manageWorksLabel : { type : String },
       worksWithErrors : { type : Array },
       showingAllHighlights : { type : Boolean },
-      isAdmin : { type : Boolean }
+      isAdmin : { type : Boolean },
+      canEditDirectly : { type : Boolean },
+      showRequestChangeModal : { type : Boolean },
+      requestChangeCitation : { type : String },
+      requestChangeCitationSubtext : { type : String },
+      requestChangeCitationLabel : { type : String },
+      requestChangeType : { type : String },
+      failedUpdates : { type : Array }
     }
   }
 
   constructor() {
     super();
-    this._injectModel('AppStateModel', 'ExpertModel');
+    this._injectModel('AppStateModel', 'ExpertModel', 'DagsterModel');
 
     this._reset();
 
@@ -78,10 +86,17 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.errorMode = false;
     this.downloads = [];
     this.isAdmin = (APP_CONFIG.user?.roles || []).includes('admin');
+    this.canEditDirectly = false;
     this.isVisible = true;
     this.manageWorksLabel = 'Manage My Works';
     this.worksWithErrors = [];
     this.showingAllHighlights = false;
+    this.showRequestChangeModal = false;
+    this.requestChangeCitation = '';
+    this.requestChangeCitationSubtext = '';
+    this.requestChangeCitationLabel = 'Work';
+    this.requestChangeType = '';
+    this.failedUpdates = [];
 
     let selectAllCheckbox = this.shadowRoot?.querySelector('#select-all');
     if( selectAllCheckbox ) selectAllCheckbox.checked = false;
@@ -126,7 +141,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     let expertId = e.location.path[0]+'/'+e.location.path[1]; // e.location.pathname.replace('/works-edit', '');
     if( expertId.substr(0,1) === '/' ) expertId = expertId.substr(1);
 
-    this.isAdmin = (APP_CONFIG.user?.expertId === expertId || utils.getCookie('editingExpertId') === expertId) || (APP_CONFIG.user?.roles || []).includes('admin');
+    this.canEditDirectly = (APP_CONFIG.user?.expertId === expertId || utils.getCookie('editingExpertId') === expertId);
+    this.isAdmin = this.canEditDirectly || (APP_CONFIG.user?.roles || []).includes('admin');
 
     if( !expertId || !this.isAdmin ) this.dispatchEvent(new CustomEvent("show-404", {}));
 
@@ -184,6 +200,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this._updateHeaderLabels();
 
     this.worksWithErrors = this.expert.invalidWorks || [];
+    this.failedUpdates = (await utils.getFailedUpdates(this.expertId)).filter(u => u.type === 'work');
     if( this.worksWithErrors.length ) this.logger.error('works with errors', { expertId : this.expertId, worksWithErrors : this.worksWithErrors });
 
     this.worksWithErrors.forEach(work => {
@@ -563,14 +580,36 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.dispatchEvent(new CustomEvent("loading", {}));
 
     try {
-      let res = await this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, true);
-      setTimeout(() => {
-        // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
-        this.dispatchEvent(new CustomEvent("loaded", {}));
-
-        let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
-        if( toastPopup ) toastPopup.showPopup('Showing on Profile');
-      }, 1500);
+      let res = await this.DagsterModel.updateCitationVisibility(this.expertId, this.citationId, true);
+      utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
+        label: 'work visibility (show)',
+        onComplete: async (status, stepStats) => {
+          await utils.trackFailedUpdate(this.expertId, { type: 'work', name: this._getCitationData(this.citationId).text, action: 'show-work', stepStats });
+          this.failedUpdates = (await utils.getFailedUpdates(this.expertId)).filter(u => u.type === 'work');
+          if( utils.hasCdlStepFailed(stepStats) ) {
+            this.dispatchEvent(new CustomEvent("loaded", {}));
+                        const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
+            this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Work visibility could not be updated.', 'visible-publication');
+            return;
+          }
+          let expert = await this.ExpertModel.get(
+            this.expertId,
+            `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`,
+            utils.getExpertApiOptions({
+              includeGrants: false,
+              worksPage: this.currentPage,
+              worksSize: this.resultsPerPage,
+              includeHidden: true,
+              includeWorksMisformatted: true
+            }),
+            true // clear cache
+          );
+          this._onExpertUpdate(expert);
+          this.dispatchEvent(new CustomEvent("loaded", {}));
+          let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+          if( toastPopup ) toastPopup.showPopup('Showing on Profile');
+        }
+      });
 
       if( window.gtag ) {
         gtag('event', 'citation_is_visible', {
@@ -584,23 +623,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     } catch (error) {
       this.dispatchEvent(new CustomEvent("loaded", {}));
 
-      let citationTitle = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)?.[0]?.title || '';
-      let modelContent = `
-        <p>
-          <strong>${citationTitle}</strong> could not be updated. Please try again later or make your changes directly in the
-          <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true" target="_blank">UC Publication Management System (opens in new tab).</a>
-        </p>
-        <p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>
-      `;
-
-      this.modalTitle = 'Error: Update Failed';
-      this.modalContent = modelContent;
-      this.showModal = true;
-      this.hideCancel = true;
-      this.hideSave = true;
-      this.hideOK = false;
-      this.hideOaPolicyLink = true;
-      this.errorMode = true;
+            const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
+      this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Work visibility could not be updated.', 'visible-publication');
 
       if( window.gtag ) {
         gtag('event', 'citation_is_visible', {
@@ -655,14 +679,36 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.dispatchEvent(new CustomEvent("loading", {}));
 
     try {
-      let res = await this.ExpertModel.updateCitationFavourite(this.expertId, this.citationId, false);
-      setTimeout(() => {
-        // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
-        this.dispatchEvent(new CustomEvent("loaded", {}));
-
-        let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
-        if( toastPopup ) toastPopup.showPopup('Removed from Highlights');
-      }, 1500);
+      let res = await this.DagsterModel.updateCitationFavourite(this.expertId, this.citationId, false);
+      utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
+        label: 'work favourite (remove)',
+        onComplete: async (status, stepStats) => {
+          await utils.trackFailedUpdate(this.expertId, { type: 'work', name: this._getCitationData(this.citationId).text, action: 'remove-highlight', stepStats });
+          this.failedUpdates = (await utils.getFailedUpdates(this.expertId)).filter(u => u.type === 'work');
+          if( utils.hasCdlStepFailed(stepStats) ) {
+            this.dispatchEvent(new CustomEvent("loaded", {}));
+                        const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
+            this._showUpdateError('Work could not be removed from highlights.', citationText, citationSubtext, 'Work could not be removed from highlights.', 'visible-publication');
+            return;
+          }
+          let expert = await this.ExpertModel.get(
+            this.expertId,
+            `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`,
+            utils.getExpertApiOptions({
+              includeGrants: false,
+              worksPage: this.currentPage,
+              worksSize: this.resultsPerPage,
+              includeHidden: true,
+              includeWorksMisformatted: true
+            }),
+            true // clear cache
+          );
+          this._onExpertUpdate(expert);
+          this.dispatchEvent(new CustomEvent("loaded", {}));
+          let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+          if( toastPopup ) toastPopup.showPopup('Removed from Highlights');
+        }
+      });
 
       if( window.gtag ) {
         gtag('event', 'citation_is_favourite', {
@@ -676,23 +722,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     } catch (error) {
       this.dispatchEvent(new CustomEvent("loaded", {}));
 
-      let citationTitle = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)?.[0]?.title || '';
-      let modelContent = `
-        <p>
-          <strong>${citationTitle}</strong> could not be updated. Please try again later or make your changes directly in the
-          <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true" target="_blank">UC Publication Management System (opens in new tab).</a>
-        </p>
-        <p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>
-      `;
-
-      this.modalTitle = 'Error: Update Failed';
-      this.modalContent = modelContent;
-      this.showModal = true;
-      this.hideCancel = true;
-      this.hideSave = true;
-      this.hideOK = false;
-      this.hideOaPolicyLink = true;
-      this.errorMode = true;
+            const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
+      this._showUpdateError('Work could not be removed from highlights.', citationText, citationSubtext, 'Work could not be removed from highlights.', 'visible-publication');
 
       if( window.gtag ) {
         gtag('event', 'citation_is_favourite', {
@@ -751,14 +782,36 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.dispatchEvent(new CustomEvent("loading", {}));
 
     try {
-      let res = await this.ExpertModel.updateCitationFavourite(this.expertId, this.citationId, true);
-      setTimeout(() => {
-        // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
-        this.dispatchEvent(new CustomEvent("loaded", {}));
-
-        let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
-        if( toastPopup ) toastPopup.showPopup('Added to Highlights');
-      }, 1500);
+      let res = await this.DagsterModel.updateCitationFavourite(this.expertId, this.citationId, true);
+      utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
+        label: 'work favourite (add)',
+        onComplete: async (status, stepStats) => {
+          await utils.trackFailedUpdate(this.expertId, { type: 'work', name: this._getCitationData(this.citationId).text, action: 'add-highlight', stepStats });
+          this.failedUpdates = (await utils.getFailedUpdates(this.expertId)).filter(u => u.type === 'work');
+          if( utils.hasCdlStepFailed(stepStats) ) {
+            this.dispatchEvent(new CustomEvent("loaded", {}));
+                        const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
+            this._showUpdateError('Work could not be added to highlights.', citationText, citationSubtext, 'Work could not be added to highlights.', 'visible-publication');
+            return;
+          }
+          let expert = await this.ExpertModel.get(
+            this.expertId,
+            `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`,
+            utils.getExpertApiOptions({
+              includeGrants: false,
+              worksPage: this.currentPage,
+              worksSize: this.resultsPerPage,
+              includeHidden: true,
+              includeWorksMisformatted: true
+            }),
+            true // clear cache
+          );
+          this._onExpertUpdate(expert);
+          this.dispatchEvent(new CustomEvent("loaded", {}));
+          let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+          if( toastPopup ) toastPopup.showPopup('Added to Highlights');
+        }
+      });
 
       if( window.gtag ) {
         gtag('event', 'citation_is_favourite', {
@@ -772,23 +825,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     } catch (error) {
       this.dispatchEvent(new CustomEvent("loaded", {}));
 
-      let citationTitle = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)?.[0]?.title || '';
-      let modelContent = `
-        <p>
-          <strong>${citationTitle}</strong> could not be updated. Please try again later or make your changes directly in the
-          <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true" target="_blank">UC Publication Management System (opens in new tab).</a>
-        </p>
-        <p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>
-      `;
-
-      this.modalTitle = 'Error: Update Failed';
-      this.modalContent = modelContent;
-      this.showModal = true;
-      this.hideCancel = true;
-      this.hideSave = true;
-      this.hideOK = false;
-      this.hideOaPolicyLink = true;
-      this.errorMode = true;
+            const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
+      this._showUpdateError('Work could not be added to highlights.', citationText, citationSubtext, 'Work could not be added to highlights.', 'visible-publication');
 
       if( window.gtag ) {
         gtag('event', 'citation_is_favourite', {
@@ -888,14 +926,36 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
     if( action === 'hide' ) {
       try {
-        let res = await this.ExpertModel.updateCitationVisibility(this.expertId, this.citationId, false);
-        setTimeout(() => {
-          // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
-          this.dispatchEvent(new CustomEvent("loaded", {}));
-
-          let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
-          if( toastPopup ) toastPopup.showPopup('Hidden from Profile');
-        }, 1500);
+        let res = await this.DagsterModel.updateCitationVisibility(this.expertId, this.citationId, false);
+        utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
+          label: 'work visibility (hide)',
+          onComplete: async (status, stepStats) => {
+            await utils.trackFailedUpdate(this.expertId, { type: 'work', name: this._getCitationData(this.citationId).text, action: 'hide-work', stepStats });
+          this.failedUpdates = (await utils.getFailedUpdates(this.expertId)).filter(u => u.type === 'work');
+            if( utils.hasCdlStepFailed(stepStats) ) {
+              this.dispatchEvent(new CustomEvent("loaded", {}));
+                            const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
+              this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Work visibility could not be updated.', 'visible-publication');
+              return;
+            }
+            let expert = await this.ExpertModel.get(
+              this.expertId,
+              `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`,
+              utils.getExpertApiOptions({
+                includeGrants: false,
+                worksPage: this.currentPage,
+                worksSize: this.resultsPerPage,
+                includeHidden: true,
+                includeWorksMisformatted: true
+              }),
+              true // clear cache
+            );
+            this._onExpertUpdate(expert);
+            this.dispatchEvent(new CustomEvent("loaded", {}));
+            let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+            if( toastPopup ) toastPopup.showPopup('Hidden from Profile');
+          }
+        });
 
         if( window.gtag ) {
           gtag('event', 'citation_is_visible', {
@@ -909,23 +969,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
-        let citationTitle = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)?.[0]?.title || '';
-        let modelContent = `
-          <p>
-            <strong>${citationTitle}</strong> could not be updated. Please try again later or make your changes directly in the
-            <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true" target="_blank">UC Publication Management System (opens in new tab).</a>
-          </p>
-          <p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>
-        `;
-
-        this.modalTitle = 'Error: Update Failed';
-        this.modalContent = modelContent;
-        this.showModal = true;
-        this.hideCancel = true;
-        this.hideSave = true;
-        this.hideOK = false;
-        this.hideOaPolicyLink = true;
-        this.errorMode = true;
+                const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
+        this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Work visibility could not be updated.', 'visible-publication');
 
         if( window.gtag ) {
           gtag('event', 'citation_is_visible', {
@@ -971,14 +1016,36 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       return;
     } else if ( action === 'reject' ) {
       try {
-        let res = await this.ExpertModel.rejectCitation(this.expertId, this.citationId);
-        setTimeout(() => {
-          // sync to elastic/indexing sometimes delays a couple seconds, add spinner to prevent confusion
-          this.dispatchEvent(new CustomEvent("loaded", {}));
-
-          let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
-          if( toastPopup ) toastPopup.showPopup('Removed from Profile');
-        }, 1500);
+        let res = await this.DagsterModel.rejectCitation(this.expertId, this.citationId);
+        utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
+          label: 'work reject',
+          onComplete: async (status, stepStats) => {
+            await utils.trackFailedUpdate(this.expertId, { type: 'work', name: this._getCitationData(this.citationId).text, action: 'hide-work', stepStats });
+          this.failedUpdates = (await utils.getFailedUpdates(this.expertId)).filter(u => u.type === 'work');
+            if( utils.hasCdlStepFailed(stepStats) ) {
+              this.dispatchEvent(new CustomEvent("loaded", {}));
+                            const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
+              this._showUpdateError('Work could not be rejected.', citationText, citationSubtext, 'Work could not be rejected.', 'reject-publication', 'https://oapolicy.universityofcalifornia.edu/');
+              return;
+            }
+            let expert = await this.ExpertModel.get(
+              this.expertId,
+              `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`,
+              utils.getExpertApiOptions({
+                includeGrants: false,
+                worksPage: this.currentPage,
+                worksSize: this.resultsPerPage,
+                includeHidden: true,
+                includeWorksMisformatted: true
+              }),
+              true // clear cache
+            );
+            this._onExpertUpdate(expert);
+            this.dispatchEvent(new CustomEvent("loaded", {}));
+            let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
+            if( toastPopup ) toastPopup.showPopup('Removed from Profile');
+          }
+        });
 
         if( window.gtag ) {
           gtag('event', 'citation_reject', {
@@ -993,23 +1060,8 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
-        let citationTitle = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)?.[0]?.title || '';
-        let modelContent = `
-          <p>
-            <strong>${citationTitle}</strong> could not be updated. Please try again later or make your changes directly in the
-            <a href="https://oapolicy.universityofcalifornia.edu/" target="_blank">UC Publication Management System (opens in new tab).</a>
-          </p>
-          <p>For more help, see <a href="/faq#reject-publication">troubleshooting tips.</a></p>
-        `;
-
-        this.modalTitle = 'Error: Update Failed';
-        this.modalContent = modelContent;
-        this.showModal = true;
-        this.hideCancel = true;
-        this.hideSave = true;
-        this.hideOK = false;
-        this.hideOaPolicyLink = true;
-        this.errorMode = true;
+                const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
+        this._showUpdateError('Work could not be rejected.', citationText, citationSubtext, 'Work could not be rejected.', 'reject-publication', 'https://oapolicy.universityofcalifornia.edu/');
 
         if( window.gtag ) {
           gtag('event', 'citation_reject', {
@@ -1054,6 +1106,101 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
     this.hideOK = true;
     this.hideOaPolicyLink = true;
     this.errorMode = false;
+  }
+
+  /**
+   * @method _getCitationData
+   * @description build display title and metadata subtext for a work citation.
+   *
+   * @param {String} id - relationship @id to look up in this.citations
+   * @returns {{ text: String, subtext: String }}
+   */
+  _getCitationData(id) {
+    const all = [...(this.citationsDisplayed || []), ...(this.featuredCitations || [])];
+    const c = all.find(c => c.relatedBy?.[0]?.['@id'] === id);
+    const year = Array.isArray(c?.originalIssued) ? c.originalIssued[0]
+      : (typeof c?.originalIssued === 'string' ? c.originalIssued.split('-')[0] : null);
+    return {
+      text: c?.title || c?.['container-title'] || '',
+      subtext: [
+        year,
+        utils.getCitationType(c?.type),
+        c?.apa?.replace('(n.d.). ', '')?.replace('(n.d.).', '')
+      ].filter(Boolean).join(' • ')
+    };
+  }
+
+  /**
+   * @method _showUpdateError
+   * @description show an error modal with a contact-us link.
+   * Stores citation context for the request-change modal.
+   *
+   * @param {String} errorMessage - sentence displayed in the modal body, e.g. "Work visibility could not be updated."
+   * @param {String} citationText - work title stored for the request-change form
+   * @param {String} citationSubtext - secondary metadata line (year, type) for the request-change form
+   * @param {String} changeType - pre-selected value for the request-change dropdown
+   * @param {String} faqAnchor - hash fragment on /faq for troubleshooting link
+   * @param {String} [oapolicyUrl] - link to the UC Publication Management System
+   */
+  _showUpdateError(errorMessage, citationText, citationSubtext, changeType, faqAnchor, oapolicyUrl='https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true') {
+    this.requestChangeCitation = citationText;
+    this.requestChangeCitationSubtext = citationSubtext;
+    this.requestChangeCitationLabel = 'Work';
+    this.requestChangeType = changeType;
+
+    this.modalTitle = 'Update Failed';
+    this.modalContent = `
+      <p>${errorMessage} Please try again later or make your changes directly in the
+        <a href="${oapolicyUrl}" target="_blank">UC Publication Management System (opens in new tab).</a>
+      </p>
+      <p>For more help, see <a href="/faq#${faqAnchor}">troubleshooting tips</a>.</p>
+      <p>For urgent changes, <a href="#" class="contact-link">contact us</a>.</p>
+    `;
+    this.showModal = true;
+    this.hideCancel = true;
+    this.hideSave = true;
+    this.hideOK = false;
+    this.hideOaPolicyLink = true;
+    this.errorMode = true;
+  }
+
+  /**
+   * @method _onRequestChange
+   * @description handle request-change event from the error modal; close the error
+   * modal and open the request-change form with the stored context.
+   */
+  _onRequestChange() {
+    this.showModal = false;
+    this.showRequestChangeModal = true;
+  }
+
+  /**
+   * @method _dismissFailedUpdate
+   * @description dismiss a failed-update entry and refresh the displayed list.
+   *
+   * @param {Object} entry - failed update entry with type, name, action
+   */
+  async _dismissFailedUpdate(entry) {
+    utils.dismissFailedUpdate(this.expertId, { type: entry.type, name: entry.name, action: entry.action });
+    this.failedUpdates = (await utils.getFailedUpdates(this.expertId)).filter(u => u.type === 'work');
+  }
+
+  /**
+   * @method _onInlineBannerHelp
+   * @description open the request-change modal pre-filled from a failed-update entry.
+   *
+   * @param {Object} entry - failed update entry
+   */
+  _onInlineBannerHelp(entry) {
+    const all = [...(this.citationsDisplayed || []), ...(this.featuredCitations || [])];
+    const c = all.find(c => (c.title || c['container-title']) === entry.name);
+    const relId = c?.relatedBy?.[0]?.['@id'];
+    const { text, subtext } = relId ? this._getCitationData(relId) : { text: entry.name, subtext: '' };
+    this.requestChangeCitation = text;
+    this.requestChangeCitationSubtext = subtext;
+    this.requestChangeCitationLabel = 'Work';
+    this.requestChangeType = utils.FAILED_UPDATE_ERROR_LABELS[entry.action] || entry.action;
+    this.showRequestChangeModal = true;
   }
 
   _updateHeaderLabels() {

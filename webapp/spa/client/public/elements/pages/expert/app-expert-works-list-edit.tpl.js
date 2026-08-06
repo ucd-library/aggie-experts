@@ -2,9 +2,12 @@ import { html } from 'lit';
 
 import { sharedStyles } from '../../styles/shared-styles';
 
+import utils from '../../../lib/utils';
+
 import buttonsCss from "@ucd-lib/theme-sass/2_base_class/_buttons.css";
 
 import '../../components/edit-work-result-row.js';
+import '../../components/app-status-banner.js';
 
 
 export function render() {
@@ -286,6 +289,12 @@ return html`
       opacity: 1;
     }
 
+    /* aligns inline banners with .work column (offsets left button group + right checkbox) */
+    .inline-banner-wrapper {
+      padding-left: calc(3 * (17px + 0.89rem));
+      padding-right: calc(0.89rem + 16px);
+    }
+
   </style>
 
   <div class="content">
@@ -300,8 +309,19 @@ return html`
       .hideOaPolicyLink="${this.hideOaPolicyLink}"
       .errorMode="${this.errorMode}"
       @cancel=${(e) => this.showModal = false}
-      @save=${this._modalSave}>
+      @save=${this._modalSave}
+      @request-change=${this._onRequestChange}>
     </app-modal-overlay>
+    <app-request-change-modal
+      .visible="${this.showRequestChangeModal}"
+      .userName="${this.expertName}"
+      .userEmail="${APP_CONFIG.user?.email || ''}"
+      .itemName="${this.requestChangeCitation}"
+      .itemSubtext="${this.requestChangeCitationSubtext}"
+      .itemLabel="${this.requestChangeCitationLabel}"
+      .changeType="${this.requestChangeType}"
+      @cancel=${(e) => this.showRequestChangeModal = false}>
+    </app-request-change-modal>
     <div class="hero-main site-frame">
       <div class="hero-text">
         <div class="works">
@@ -389,6 +409,22 @@ return html`
                 @reject-work="${this._rejectWork}"
                 @select-checked="${this._selectChecked}">
               </edit-work-result-row>
+              ${this.canEditDirectly ? (this.failedUpdates || []).filter(u => u.name === (cite.title || cite['container-title'] || '')).map(entry => {
+                const isInfoOnly = !entry.cdlFailed && entry.esFailed;
+                return html`
+                  <div class="inline-banner-wrapper">
+                    <app-status-banner
+                      type="${isInfoOnly ? 'info' : 'error'}"
+                      icon="${isInfoOnly ? 'ucdlib-experts:fa-check-circle' : 'ucdlib-experts:fa-exclamation-triangle'}"
+                      message="${isInfoOnly ? (utils.FAILED_UPDATE_SUCCESS_LABELS[entry.action] || entry.action) + '. Your profile will update at the next data refresh.' : (utils.FAILED_UPDATE_ERROR_LABELS[entry.action] || entry.action) + '. Try again or'}"
+                      ?show-help="${!isInfoOnly}"
+                      dismissible
+                      @dismiss=${() => this._dismissFailedUpdate(entry)}
+                      @help=${() => this._onInlineBannerHelp(entry)}>
+                    </app-status-banner>
+                  </div>
+                `;
+              }) : ''}
             </div>
           `
           )}
@@ -431,6 +467,22 @@ return html`
             @reject-work="${this._rejectWork}"
             @select-checked="${this._selectChecked}">
           </edit-work-result-row>
+          ${this.canEditDirectly ? (this.failedUpdates || []).filter(u => u.name === (cite.title || cite['container-title'] || '')).map(entry => {
+            const isInfoOnly = !entry.cdlFailed && entry.esFailed;
+            return html`
+              <div class="inline-banner-wrapper">
+                <app-status-banner
+                  type="${isInfoOnly ? 'info' : 'error'}"
+                  icon="${isInfoOnly ? 'ucdlib-experts:fa-check-circle' : 'ucdlib-experts:fa-exclamation-triangle'}"
+                  message="${isInfoOnly ? (utils.FAILED_UPDATE_SUCCESS_LABELS[entry.action] || entry.action) + '. Your profile will update at the next data refresh.' : (utils.FAILED_UPDATE_ERROR_LABELS[entry.action] || entry.action) + '. Try again or'}"
+                  ?show-help="${!isInfoOnly}"
+                  dismissible
+                  @dismiss=${() => this._dismissFailedUpdate(entry)}
+                  @help=${() => this._onInlineBannerHelp(entry)}>
+                </app-status-banner>
+              </div>
+            `;
+          }) : ''}
         `
         )}
 

@@ -62,13 +62,27 @@ export class ModalOverlay extends LitElement {
 
   /**
    * @method _onSave
-   * @description cancel button event handler
+   * @description save button event handler
    *
    */
   _onSave(e) {
     this.dispatchEvent(
       new CustomEvent('save', {})
     );
+  }
+
+  /**
+   * @method _onBodyClick
+   * @description delegate clicks inside the modal body; dispatches request-change when
+   * a .contact-link anchor is clicked so the parent can open the request-change form.
+   *
+   * @param {Event} e
+   */
+  _onBodyClick(e) {
+    if( e.target.classList.contains('contact-link') ) {
+      e.preventDefault();
+      this.dispatchEvent(new CustomEvent('request-change', { bubbles: true, composed: true }));
+    }
   }
 
 }

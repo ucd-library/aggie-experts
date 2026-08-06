@@ -1,6 +1,7 @@
 """
 Dagster sensor definitions for the Aggie Experts ETL pipeline.
 """
+import os
 import dagster as dg
 
 from .utils import (
@@ -9,6 +10,11 @@ from .utils import (
     BACKFILL_UPDATE_FN,
     exec,
     _notify_backfill_completion,
+)
+from .jobs import (
+    update_scholarly_record_job,
+    update_expert_job,
+    update_expert_availability_job,
 )
 
 
@@ -159,3 +165,33 @@ def etl_notify_and_continue(context: dg.SensorEvaluationContext):
                 context.log.info(f"Launched post_etl_job via cli.")
             else:
                 context.log.info(f"No not a extract_users_job or continue_etl is not true for backfill {backfill_id}, skipping triggering next job.")
+
+
+@dg.run_failure_sensor(
+    name="admin_update_failure_notifier",
+    description="Send a Slack notification when an admin update job (scholarly record, expert, or availability) fails.",
+    monitored_jobs=[update_scholarly_record_job, update_expert_job, update_expert_availability_job],
+    minimum_interval_seconds=30,
+)
+def admin_update_failure_sensor(context: dg.RunFailureSensorContext):
+    """Fire a Slack alert when any of the three UI-triggered admin update jobs fail."""
+    run = context.dagster_run
+    job_name = run.job_name
+    run_id = run.run_id
+    error_message = context.failure_event.message if context.failure_event else "Unknown error"
+    harvest_url = os.getenv('HARVEST_URL', 'http://localhost:4000')
+
+    message = (
+        f"Run ID: {run_id}\n"
+        f"Error: {error_message}\n"
+        f"<{harvest_url}|View run on Dagster>"
+    )
+
+    exec(
+        ["experts", "admin", "notify",
+         "--title", f"{job_name} failed",
+         "--message", message,
+         "--severity", "error",
+         "--source", "dagster"],
+        no_json_parse=True
+    )

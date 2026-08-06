@@ -8,6 +8,7 @@ import '@ucd-lib/theme-elements/ucdlib/ucdlib-md/ucdlib-md.js';
 import "@ucd-lib/theme-elements/ucdlib/ucdlib-icon/ucdlib-icon";
 import '../../utils/app-icons.js';
 import '../../components/modal-overlay.js';
+import '../../components/app-request-change-modal.js';
 
 import Citation from '../../../lib/utils/citation.js';
 import utils from '../../../lib/utils';
@@ -52,6 +53,9 @@ export default class AppExpert extends Mixin(LitElement)
       hideOK : { type : Boolean },
       hideOaPolicyLink : { type : Boolean },
       errorMode : { type : Boolean },
+      showRequestChangeModal : { type : Boolean },
+      requestChangeCitation : { type : String },
+      requestChangeType : { type : String },
       grantsPerPage : { type : Number },
       worksPerPage : { type : Number },
       expertEditing : { type : String },
@@ -64,7 +68,9 @@ export default class AppExpert extends Mixin(LitElement)
       industProjects : { type : Boolean },
       mediaInterviews : { type : Boolean },
       lastUpdated : { type : String },
-      refreshingProfileData : { type : Boolean }
+      refreshingProfileData : { type : Boolean },
+      dagsterHealthy : { type : Boolean },
+      failedUpdates : { type : Array }
     }
   }
 
@@ -76,6 +82,7 @@ export default class AppExpert extends Mixin(LitElement)
     this._reset();
 
     this._profileSyncIntervalId = null;
+    this._dagsterHealthIntervalId = null;
 
     this.render = render.bind(this);
   }
@@ -95,12 +102,25 @@ export default class AppExpert extends Mixin(LitElement)
 
     if( e.location.page !== 'expert' ) {
       clearInterval(this._profileSyncIntervalId);
+      clearTimeout(this._dagsterHealthIntervalId);
       this._profileSyncIntervalId = null;
+      this._dagsterHealthIntervalId = null;
       this.refreshingProfileData = false;
       return;
     }
 
     let expertId = e.location.pathname.substr(1);
+
+    if( APP_CONFIG.user?.loggedIn && (APP_CONFIG.user.expertId === expertId || this.isAdmin) ) {
+      await this._checkDagsterHealthLoop();
+
+      try {
+        await this._updateProfileLastUpdated();
+      } catch (e) {
+        // ignore errors from profile last-updated refresh for this view
+      }
+    }
+
     let modified = e.modifiedWorks || e.modifiedGrants;
     if( expertId === this.expertId && !modified ) return;
 
@@ -121,6 +141,8 @@ export default class AppExpert extends Mixin(LitElement)
         new CustomEvent("show-404", {})
       );
     }
+
+       
   }
 
   /**
@@ -140,6 +162,7 @@ export default class AppExpert extends Mixin(LitElement)
     this.expertId = e.expertId;
     this.expert = JSON.parse(JSON.stringify(e.payload));
     this.canEdit = APP_CONFIG.user.expertId === this.expertId || utils.getCookie('editingExpertId') === this.expertId;
+    this.failedUpdates = await utils.getFailedUpdates(this.expertId);
 
     this.isVisible = this.expert['is-visible'];
 
@@ -256,14 +279,6 @@ export default class AppExpert extends Mixin(LitElement)
     this.industProjects = graphRoot.hasAvailability.some(a => a.prefLabel === availLabels.industry);
     this.mediaInterviews = graphRoot.hasAvailability.some(a => a.prefLabel === availLabels.media);
     this.hideAvailability = (!this.collabProjects && !this.commPartner && !this.industProjects && !this.mediaInterviews && !this.canEdit);
-
-    // if (APP_CONFIG.user?.loggedIn && APP_CONFIG.user.expertId === this.expertId) {
-    //   try {
-    //     await this._updateProfileLastUpdated();
-    //   } catch (e) {
-    //     // ignore errors from profile last-updated refresh for this view
-    //   }
-    // }
   }
 
   /**
@@ -305,6 +320,9 @@ export default class AppExpert extends Mixin(LitElement)
     this.hideOK = false;
     this.hideOaPolicyLink = false;
     this.errorMode = false;
+    this.showRequestChangeModal = false;
+    this.requestChangeCitation = '';
+    this.requestChangeType = '';
     this.grantsPerPage = 5;
     this.worksPerPage = 10;
     this.isAdmin = (APP_CONFIG.user?.roles || []).includes('admin');
@@ -316,9 +334,8 @@ export default class AppExpert extends Mixin(LitElement)
     this.commPartner = false;
     this.industProjects = false;
     this.mediaInterviews = false;
-    this.lastUpdated = 'Mon XX, 20XX, X:XXpm';
     this.refreshingProfileData = false;
-
+    this.failedUpdates = [];
     if( !this.expertEditing ) {
       this.expertEditing = '';
       this.hideEdit = (
@@ -542,7 +559,8 @@ export default class AppExpert extends Mixin(LitElement)
     if( this.isAdmin && this.modalAction === 'hide-expert' ) {
       this.dispatchEvent(new CustomEvent("loading", {}));
       try {
-        let res = await this.ExpertModel.updateExpertVisibility(this.expertId, false);
+        let res = await this.DagsterModel.updateExpertVisibility(this.expertId, false);
+        utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), { label: 'expert visibility (hide)' });
         this.dispatchEvent(new CustomEvent("loaded", {}));
         this.isVisible = false;
 
@@ -556,21 +574,7 @@ export default class AppExpert extends Mixin(LitElement)
         this.logger.info('expert hidden', { expertId : this.expertId });
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
-        let modelContent = `
-          <p>
-            <strong>Expert</strong> could not be updated. Please try again later or make your changes directly in the
-            <a href="https://oapolicy.universityofcalifornia.edu/" target="_blank">UC Publication Management System (opens in new tab).</a>
-          </p>`;
-
-        this.modalTitle = 'Error: Update Failed';
-        this.modalSaveText = '';
-        this.modalContent = modelContent;
-        this.showModal = true;
-        this.hideCancel = true;
-        this.hideSave = true;
-        this.hideOK = false;
-        this.hideOaPolicyLink = true;
-        this.errorMode = true;
+        this._showUpdateError('Expert visibility could not be updated.', '', 'Availability settings could not be updated.');
 
         if( window.gtag ) {
           gtag('event', 'expert_is_visible', {
@@ -584,7 +588,8 @@ export default class AppExpert extends Mixin(LitElement)
     } else if( this.modalAction === 'delete-expert' ) {
       this.dispatchEvent(new CustomEvent("loading", {}));
       try {
-        let res = await this.ExpertModel.deleteExpert(this.expertId);
+        let res = await this.DagsterModel.deleteExpert(this.expertId);
+        utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), { label: 'expert delete' });
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
         if( window.gtag ) {
@@ -601,21 +606,7 @@ export default class AppExpert extends Mixin(LitElement)
         window.location.replace('/auth/logout');
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
-        let modelContent = `
-          <p>
-            <strong>Expert</strong> could not be updated. Please try again later or make your changes directly in the
-            <a href="https://oapolicy.universityofcalifornia.edu/" target="_blank">UC Publication Management System (opens in new tab).</a>
-          </p>`;
-
-        this.modalTitle = 'Error: Update Failed';
-        this.modalSaveText = '';
-        this.modalContent = modelContent;
-        this.showModal = true;
-        this.hideCancel = true;
-        this.hideSave = true;
-        this.hideOK = false;
-        this.hideOaPolicyLink = true;
-        this.errorMode = true;
+        this._showUpdateError('Expert profile could not be updated.', '', 'Availability settings could not be updated.');
 
         if( window.gtag ) {
           gtag('event', 'expert_delete', {
@@ -655,8 +646,25 @@ export default class AppExpert extends Mixin(LitElement)
         };
         let labels = utils.buildAvailabilityPayload(openTo, prevOpenTo);
 
-        let res = await this.ExpertModel.updateExpertAvailability(this.expertId, labels);
-        this.dispatchEvent(new CustomEvent("loaded", {}));
+        let res = await this.DagsterModel.updateExpertAvailability(this.expertId, labels);
+        utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
+          label: 'expert availability',
+          onComplete: async (status, stepStats) => {
+            await utils.trackFailedUpdate(this.expertId, { type: 'availability', name: '', action: 'update-availability', stepStats });
+            if( utils.hasCdlStepFailed(stepStats) ) {
+              this.dispatchEvent(new CustomEvent("loaded", {}));
+              let elementsEditMode = APP_CONFIG.user.expertId === this.expertId ? '&em=true' : '';
+              this._showUpdateError('Availability settings could not be updated.', '', 'Availability settings could not be updated.', `https://oapolicy.universityofcalifornia.edu${this.elementsUserId.length > 0 ? '/userprofile.html?uid=' + this.elementsUserId + elementsEditMode : ''}`);
+              return;
+            }
+            this.collabProjects = collabProjects;
+            this.commPartner = commPartner;
+            this.industProjects = industProjects;
+            this.mediaInterviews = mediaInterviews;
+            this.hideAvailability = (!this.collabProjects && !this.commPartner && !this.industProjects && !this.mediaInterviews && !this.canEdit);
+            this.dispatchEvent(new CustomEvent("loaded", {}));
+          }
+        });
 
         if( window.gtag ) {
           gtag('event', 'expert_availability_change', {
@@ -666,32 +674,11 @@ export default class AppExpert extends Mixin(LitElement)
           });
         }
 
-        this.collabProjects = collabProjects;
-        this.commPartner = commPartner;
-        this.industProjects = industProjects;
-        this.mediaInterviews = mediaInterviews;
-        this.hideAvailability = (!this.collabProjects && !this.commPartner && !this.industProjects && !this.mediaInterviews && !this.canEdit);
-
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
         let elementsEditMode = APP_CONFIG.user.expertId === this.expertId ? '&em=true' : '';
-        let modelContent = `
-          <p>
-            <strong>Availability labels</strong> could not be updated. Please try again later or make your changes directly in the
-            <a href="https://oapolicy.universityofcalifornia.edu${this.elementsUserId.length > 0 ? '/userprofile.html?uid=' + this.elementsUserId + elementsEditMode : ''}" target="_blank">UC Publication Management System (opens in new tab).</a>
-          </p>
-        `;
-
-        this.modalTitle = 'Error: Update Failed';
-        this.modalSaveText = '';
-        this.modalContent = modelContent;
-        this.showModal = true;
-        this.hideCancel = true;
-        this.hideSave = true;
-        this.hideOK = false;
-        this.hideOaPolicyLink = true;
-        this.errorMode = true;
+        this._showUpdateError('Availability settings could not be updated.', '', 'Availability settings could not be updated.', `https://oapolicy.universityofcalifornia.edu${this.elementsUserId.length > 0 ? '/userprofile.html?uid=' + this.elementsUserId + elementsEditMode : ''}`);
 
         if( window.gtag ) {
           gtag('event', 'expert_availability_change', {
@@ -704,6 +691,57 @@ export default class AppExpert extends Mixin(LitElement)
     }
 
     this.modalAction = '';
+  }
+
+  /**
+   * @method _showUpdateError
+   * @description show an error modal with a contact-us link.
+   * Stores citation context for the request-change modal.
+   *
+   * @param {String} errorMessage - sentence displayed in the modal body, e.g. "Availability settings could not be updated."
+   * @param {String} citationText - text stored for the request-change form (not shown in this modal)
+   * @param {String} changeType - pre-selected value for the request-change dropdown
+   * @param {String} [oapolicyUrl] - link to the UC Publication Management System
+   */
+  _showUpdateError(errorMessage, citationText, changeType, oapolicyUrl='https://oapolicy.universityofcalifornia.edu/') {
+    this.requestChangeCitation = citationText;
+    this.requestChangeType = changeType;
+
+    this.modalTitle = 'Update Failed';
+    this.modalSaveText = '';
+    this.modalContent = `
+      <p>${errorMessage} Please try again later or make your changes directly in the
+        <a href="${oapolicyUrl}" target="_blank">UC Publication Management System (opens in new tab).</a>
+      </p>
+      <p>For urgent changes, <a href="#" class="contact-link">contact us</a>.</p>
+    `;
+    this.showModal = true;
+    this.hideCancel = true;
+    this.hideSave = true;
+    this.hideOK = false;
+    this.hideOaPolicyLink = true;
+    this.errorMode = true;
+  }
+
+  /**
+   * @method _onRequestChange
+   * @description handle request-change event from the error modal; close the error
+   * modal and open the request-change form.
+   */
+  _onRequestChange() {
+    this.showModal = false;
+    this.showRequestChangeModal = true;
+  }
+
+  /**
+   * @method _dismissFailedUpdate
+   * @description dismiss a failed-update banner entry for this expert and refresh the list.
+   *
+   * @param {Object} entry - the failed update entry to dismiss (must have type, name, action)
+   */
+  async _dismissFailedUpdate(entry) {
+    utils.dismissFailedUpdate(this.expertId, { type: entry.type, name: entry.name, action: entry.action });
+    this.failedUpdates = await utils.getFailedUpdates(this.expertId);
   }
 
   /**
@@ -730,7 +768,8 @@ export default class AppExpert extends Mixin(LitElement)
     if( this.isAdmin ) {
       this.dispatchEvent(new CustomEvent("loading", {}));
       try {
-        let res = await this.ExpertModel.updateExpertVisibility(this.expertId, true);
+        let res = await this.DagsterModel.updateExpertVisibility(this.expertId, true);
+        utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), { label: 'expert visibility (show)' });
         this.dispatchEvent(new CustomEvent("loaded", {}));
         this.isVisible = true;
 
@@ -744,21 +783,7 @@ export default class AppExpert extends Mixin(LitElement)
         this.logger.info('expert visibility set to true', { expertId : this.expertId });
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
-        let modelContent = `
-          <p>
-            <strong>Expert</strong> could not be updated. Please try again later or make your changes directly in the
-            <a href="https://oapolicy.universityofcalifornia.edu/" target="_blank">UC Publication Management System (opens in new tab).</a>
-          </p>`;
-
-        this.modalTitle = 'Error: Update Failed';
-        this.modalSaveText = '';
-        this.modalContent = modelContent;
-        this.showModal = true;
-        this.hideCancel = true;
-        this.hideSave = true;
-        this.hideOK = false;
-        this.hideOaPolicyLink = true;
-        this.errorMode = true;
+        this._showUpdateError('Expert visibility could not be updated.', '', 'Availability settings could not be updated.');
 
         if( window.gtag ) {
           gtag('event', 'expert_is_visible', {
@@ -940,75 +965,139 @@ export default class AppExpert extends Mixin(LitElement)
   }
 
   /**
+   * @method _checkDagsterHealthLoop
+   * @description loop to check health of dagster, disable admin controls if dagster is not healthy
+   */
+  async _checkDagsterHealthLoop() {
+    if( this._dagsterHealthIntervalId ) {
+      clearInterval(this._dagsterHealthIntervalId);
+    }
+
+    await this._checkDagsterHealth();
+
+    this._dagsterHealthIntervalId = setInterval(async () => {
+      await this._checkDagsterHealth();
+    }, 10000);
+  }
+
+  async _checkDagsterHealth() {
+    if( APP_CONFIG.dagsterServiceDown || APP_CONFIG.cdlServiceDown ) {
+      this.dagsterHealthy = false;
+      this.dispatchEvent(new CustomEvent('dagster-health-issue', {
+        detail: {
+          healthIssue: true,
+          dagsterDown: APP_CONFIG.dagsterServiceDown,
+          cdlDown: APP_CONFIG.cdlServiceDown
+        }
+      }));
+      return;
+    }
+
+    try {
+      let res = await this.DagsterModel.getHealth();
+
+      let status = res?.body?.status || '';
+      if( status !== 'healthy' ) {
+        this.dagsterHealthy = false;
+        this.dispatchEvent(
+          new CustomEvent('dagster-health-issue', {
+            detail : {
+              healthIssue : true,
+              dagsterDown: true,
+              cdlDown: APP_CONFIG.cdlServiceDown
+            }
+          })
+        );
+        this.logger.info('Dagster is not healthy, todo disable controls and show banner in fin-app', this.dagsterHealthy);
+        this.requestUpdate();
+      } else {
+        this.dagsterHealthy = true;
+        this.dispatchEvent(
+          new CustomEvent('dagster-health-issue', {
+            detail : {
+              healthIssue : false,
+              dagsterDown: false,
+              cdlDown: false
+            }
+          })
+        );
+        this.logger.info('Dagster is healthy');
+      }
+    } catch (err) {
+      this.logger.warn('Error checking dagster health', err);
+    }
+  }
+
+  /**
    * @method _refreshProfile
    * @description update expert profile from elements
    */
-  // async _refreshProfile(e) {
-  //   e.preventDefault();
+  async _refreshProfile(e) {
+    e.preventDefault();
 
-  //   let partitionName = APP_CONFIG.user.email;
+    let partitionName = APP_CONFIG.user.email;
 
-  //   if( !partitionName ) return;
+    if( !partitionName ) return;
 
-  //   this.refreshingProfileData = true;
-  //   let res = await this.DagsterModel.runJobPartition(APP_CONFIG.dagster?.jobs?.etlUsersJob, partitionName);
+    this.refreshingProfileData = true;
+    let res = await this.DagsterModel.runJobPartition(APP_CONFIG.dagster?.jobs?.etlUsersJob, partitionName, { priority: 2 });
     
-  //   // loop to check status of run
-  //   let runId = res.body?.data?.launchRun?.run?.runId || '';
-  //   if( runId ) {
-  //     this.lastLastUpdated = this.lastUpdated;
-  //     this.lastUpdated = 'Updating...';
-  //     this._startProfileSyncInterval(runId);
-  //   }
-  // }
+    // loop to check status of run
+    let runId = res.body?.data?.launchRun?.run?.runId || '';
+    if( runId ) {
+      this.lastLastUpdated = this.lastUpdated;
+      this.lastUpdated = 'Updating...';
+      this._startProfileSyncInterval(runId);
+    }
+  }
 
-  // _startProfileSyncInterval(runId) {
-  //   if( this._profileSyncIntervalId ) {
-  //     clearInterval(this._profileSyncIntervalId);
-  //   }
+  _startProfileSyncInterval(runId) {
+    if( this._profileSyncIntervalId ) {
+      clearInterval(this._profileSyncIntervalId);
+    }
 
-  //   this.refreshingProfileData = true;
-  //   this._profileSyncIntervalId = setInterval(async () => {
-  //     try {
-  //       let res = await this.DagsterModel.getLastRunForId(runId);
-  //       let status = res.body?.data?.runOrError?.status;
+    this.refreshingProfileData = true;
+    this._profileSyncIntervalId = setInterval(async () => {
+      try {
+        let res = await this.DagsterModel.getLastRunForId(runId);
+        let status = res.body?.data?.runOrError?.status;
 
-  //       if (status === 'FAILURE' || status === 'SUCCESS') {
-  //         clearInterval(this._profileSyncIntervalId);
-  //         this._profileSyncIntervalId = null;
-  //         this.refreshingProfileData = false;
+        if (status === 'FAILURE' || status === 'SUCCESS') {
+          clearInterval(this._profileSyncIntervalId);
+          this._profileSyncIntervalId = null;
+          this.refreshingProfileData = false;
 
-  //         if( status === 'SUCCESS' ) {
-  //           this._updateProfileLastUpdated();
-  //           this.refreshingProfileData = false;
+          if( status === 'SUCCESS' ) {
+            this._updateProfileLastUpdated();
+            this.refreshingProfileData = false;
 
-  //           // refresh ui
-  //           this.ExpertModel.store.data.byId.purge();
-  //           window.location.reload();
-  //         } else {
-  //           this.lastUpdated = this.lastLastUpdated || '';
-  //           this.logger.warn('Profile update dagster job run failed', { runId });
-  //           this.refreshingProfileData = false;
-  //         }
-  //       }
-  //     } catch (err) {
-  //       this.logger.warn('Error checking profile status in dagster job run', err);
-  //     }
+            // refresh ui
+            this.ExpertModel.store.data.byId.purge();
+            window.location.reload();
+          } else {
+            this.lastUpdated = this.lastLastUpdated || '';
+            this.logger.warn('Profile update dagster job run failed', { runId });
+            this.refreshingProfileData = false;
+          }
+        }
+      } catch (err) {
+        this.logger.warn('Error checking profile status in dagster job run', err);
+      }
 
-  //   }, 5000);
-  // }
+    }, 5000);
+  }
 
-  // async _updateProfileLastUpdated() {
-  //   let partitionName = APP_CONFIG.user.email;
-  //   let res = await this.DagsterModel.getLastRunForPartition(APP_CONFIG.dagster?.jobs?.etlUsersJob, partitionName);
+  async _updateProfileLastUpdated() {
+    let partitionName = APP_CONFIG.user.email;
+    let res = await this.DagsterModel.getLastRunForPartition(APP_CONFIG.dagster?.jobs?.etlUsersJob, partitionName);
 
-  //   let mostRecentSuccessfulRun = (res.body?.data?.runsOrError?.results || [])
-  //       .filter(r => r.status !== 'FAILURE' && r.status !== 'CANCELED')
-  //       .sort((a, b) => new Date(b.endTime) - new Date(a.endTime))[0]?.endTime;
+    let mostRecentSuccessfulRun = (res.body?.data?.runsOrError?.results || [])
+        .filter(r => r.status !== 'FAILURE' && r.status !== 'CANCELED')
+        .sort((a, b) => new Date(b.endTime) - new Date(a.endTime))[0]?.endTime;
 
-  //   if( mostRecentSuccessfulRun ) this.lastUpdated = utils.formatDagsterTime(mostRecentSuccessfulRun);
-  //   else this.lastUpdated = '';
-  // }
+    if( mostRecentSuccessfulRun ) this.lastUpdated = utils.formatDagsterTime(mostRecentSuccessfulRun);
+    else this.lastUpdated = '';
+  }
 
   _hideEditExpertControls() {
     return (!this.isAdmin || !this.hideEdit || this.expertEditing !== this.expertId) && APP_CONFIG.user?.expertId !== this.expertId;
@@ -1016,20 +1105,7 @@ export default class AppExpert extends Mixin(LitElement)
 
   _cdlErrorModal(e) {
     e.preventDefault();
-
-    this.modalTitle = 'Error: Update Failed';
-    this.modalSaveText = '';
-    let rejectFailureMsg = `<p>Rejecting (Title of Work) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#reject-publication">troubleshooting tips.</a></p>`;
-    let visibilityFailureMsgGrant = `<p>Changes to the visibility of (Title of Grant) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=2&oa=&tol=&tids=&f=&rp=&vs=&nad=&rs=&efa=&sid=&y=&ipr=true&jda=&iqf=&id=&wt=">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
-    let visibilityFailureMsgWork = `<p>Changes to the visibility of (Title of Work) could not be done through Aggie Experts right now. Please, try again later, or make changes directly in the <a href="https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true">UC Publication Management System.</a></p><p>For more help, see <a href="/faq#visible-publication">troubleshooting tips.</a></p>`;
-
-    this.modalContent = rejectFailureMsg;
-    this.showModal = true;
-    this.hideCancel = true;
-    this.hideSave = true;
-    this.hideOK = false;
-    this.hideOaPolicyLink = true;
-    this.errorMode = true;
+    this._showUpdateError('This item could not be updated.', '', 'Work visibility could not be updated.');
   }
 
 }

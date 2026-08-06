@@ -11,6 +11,25 @@ import config from './lib/config.js';
 import { getYearWeek, getTodaysDate, isPlainDate, parseYearWeek } from './lib/year-week.js';
 import ElementsClient from './lib/elements-client.js';
 import ExpertsKcAdminClient from './lib/keycloak-admin.js';
+import {
+  patchExpertVisibility,
+  patchExpertEsVisibility,
+  patchExpertCdlVisibility,
+  patchExpertPgVisibility,
+  deleteExpert,
+  patchExpertAvailability,
+  patchExpertAvailabilityEs,
+  patchExpertAvailabilityCdl,
+  patchGrantVisibility,
+  patchGrantEsVisibility,
+  patchGrantCdlVisibility,
+  patchGrantPgVisibility,
+  patchWorkVisibility,
+  patchWorkEsVisibility,
+  patchWorkCdlVisibility,
+  patchWorkPgVisibility,
+  deleteAuthorship
+} from './lib/profile-updates.js';
 
 // dept-utils is data-injected (see commons/lib/dept-utils.js). Server-side callers
 // don't carry the ORG_LOOKUP table around, so bind it here to preserve the original
@@ -38,5 +57,22 @@ export {
   getYearWeek,
   getTodaysDate,
   isPlainDate,
-  parseYearWeek
+  parseYearWeek,
+  patchExpertVisibility,
+  patchExpertEsVisibility,
+  patchExpertCdlVisibility,
+  patchExpertPgVisibility,
+  deleteExpert,
+  patchExpertAvailability,
+  patchExpertAvailabilityEs,
+  patchExpertAvailabilityCdl,
+  patchGrantVisibility,
+  patchGrantEsVisibility,
+  patchGrantCdlVisibility,
+  patchGrantPgVisibility,
+  patchWorkVisibility,
+  patchWorkEsVisibility,
+  patchWorkCdlVisibility,
+  patchWorkPgVisibility,
+  deleteAuthorship
 };

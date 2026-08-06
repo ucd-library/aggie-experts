@@ -6,6 +6,7 @@ import { sharedStyles } from '../../styles/shared-styles';
 import buttonsCss from "@ucd-lib/theme-sass/2_base_class/_buttons.css";
 
 import utils from '../../../lib/utils';
+import '../../components/app-status-banner.js';
 
 export function render() {
 return html`
@@ -183,6 +184,12 @@ return html`
       fill: var(--color-aggie-gold);
     }
 
+    /* aligns inline banners with .grant column (offsets left button group + right checkbox) */
+    .inline-banner-wrapper {
+      padding-left: calc(17px + 0.89rem);
+      padding-right: calc(0.89rem + 16px);
+    }
+
     h2 {
       margin: 1.19rem 0;
     }
@@ -286,8 +293,19 @@ return html`
       .hideOaPolicyLink="${this.hideOaPolicyLink}"
       .errorMode="${this.errorMode}"
       @cancel=${(e) => this.showModal = false}
-      @save=${this._modalSave}>
+      @save=${this._modalSave}
+      @request-change=${this._onRequestChange}>
     </app-modal-overlay>
+    <app-request-change-modal
+      .visible="${this.showRequestChangeModal}"
+      .userName="${this.expertName}"
+      .userEmail="${APP_CONFIG.user?.email || ''}"
+      .itemName="${this.requestChangeCitation}"
+      .itemSubtext="${this.requestChangeCitationSubtext}"
+      .itemLabel="${this.requestChangeCitationLabel}"
+      .changeType="${this.requestChangeType}"
+      @cancel=${(e) => this.showRequestChangeModal = false}>
+    </app-request-change-modal>
     <div class="hero-main site-frame">
       <div class="hero-text">
         <div class="grants">
@@ -384,6 +402,22 @@ return html`
               <input type="checkbox" data-id="${grant['@id']}" id="select-${index}" name="select-${index}" value="select-${index}" @click="${this._selectChecked}">
             </div>
           </div>
+          ${this.canEditDirectly ? (this.failedUpdates || []).filter(u => u.name === grant.name).map(entry => {
+            const isInfoOnly = !entry.cdlFailed && entry.esFailed;
+            return html`
+              <div class="inline-banner-wrapper">
+                <app-status-banner
+                  type="${isInfoOnly ? 'info' : 'error'}"
+                  icon="${isInfoOnly ? 'ucdlib-experts:fa-check-circle' : 'ucdlib-experts:fa-exclamation-triangle'}"
+                  message="${isInfoOnly ? (utils.FAILED_UPDATE_SUCCESS_LABELS[entry.action] || entry.action) + '. Your profile will update at the next data refresh.' : (utils.FAILED_UPDATE_ERROR_LABELS[entry.action] || entry.action) + '. Try again or'}"
+                  ?show-help="${!isInfoOnly}"
+                  dismissible
+                  @dismiss=${() => this._dismissFailedUpdate(entry)}
+                  @help=${() => this._onInlineBannerHelp(entry)}>
+                </app-status-banner>
+              </div>
+            `;
+          }) : ''}
         `
         )}
 
@@ -431,6 +465,22 @@ return html`
               <input type="checkbox" data-id="${grant['@id']}" id="select-${index}" name="select-${index}" value="select-${index}" @click="${this._selectChecked}">
             </div>
           </div>
+          ${this.canEditDirectly ? (this.failedUpdates || []).filter(u => u.name === grant.name).map(entry => {
+            const isInfoOnly = !entry.cdlFailed && entry.esFailed;
+            return html`
+              <div class="inline-banner-wrapper">
+                <app-status-banner
+                  type="${isInfoOnly ? 'info' : 'error'}"
+                  icon="${isInfoOnly ? 'ucdlib-experts:fa-check-circle' : 'ucdlib-experts:fa-exclamation-triangle'}"
+                  message="${isInfoOnly ? (utils.FAILED_UPDATE_SUCCESS_LABELS[entry.action] || entry.action) + '. Your profile will update at the next data refresh.' : (utils.FAILED_UPDATE_ERROR_LABELS[entry.action] || entry.action) + '. Try again or'}"
+                  ?show-help="${!isInfoOnly}"
+                  dismissible
+                  @dismiss=${() => this._dismissFailedUpdate(entry)}
+                  @help=${() => this._onInlineBannerHelp(entry)}>
+                </app-status-banner>
+              </div>
+            `;
+          }) : ''}
         `
         )}
 

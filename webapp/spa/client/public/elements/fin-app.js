@@ -40,7 +40,13 @@ export default class FinApp extends Mixin(LitElement)
       quickLinksTitle: { type : String },
       quickLinks : { type : Array },
       currentElasticIndex : { type : String },
-      hideEsIndexPreviewing : { type : Boolean }
+      hideEsIndexPreviewing : { type : Boolean },
+      hideDagsterHealth : { type : Boolean },
+      showDagsterDownModal : { type : Boolean },
+      hideCdlHealth : { type : Boolean },
+      showCdlDownModal : { type : Boolean },
+      pageExpertId : { type : String },
+      expertAvailability : { type : Object },
     }
   }
 
@@ -76,6 +82,12 @@ export default class FinApp extends Mixin(LitElement)
     this.quickLinks = [];
     this.currentElasticIndex = '';
     this.hideEsIndexPreviewing = true;
+    this.hideDagsterHealth = true;
+    this.showDagsterDownModal = false;
+    this.hideCdlHealth = !(APP_CONFIG.cdlServiceDown && !APP_CONFIG.dagsterServiceDown);
+    this.showCdlDownModal = false;
+    this.pageExpertId = '';
+    this.expertAvailability = { collabProjects: false, commPartner: false, industProjects: false, mediaInterviews: false };
 
     this.render = render.bind(this);
     this._init404();
@@ -164,6 +176,15 @@ export default class FinApp extends Mixin(LitElement)
     }
 
     this._validateLoggedInUser();
+
+    if( e.location.path[0] === 'expert' ) {
+      const subpages = new Set(['works', 'works-edit', 'grants', 'grants-edit']);
+      const raw = e.location.pathname.substr(1);
+      const last = e.location.path[e.location.path.length - 1];
+      this.pageExpertId = subpages.has(last)
+        ? raw.substring(0, raw.lastIndexOf('/'))
+        : raw;
+    }
 
     let page = e.location.page;
     let route = e.location.path[0] === 'expert' ? 'expert' : (e.location.page || 'home');
@@ -506,6 +527,56 @@ export default class FinApp extends Mixin(LitElement)
       this.currentElasticIndex = '';
       this.hideEsIndexPreviewing = true;
     }
+  }
+
+  _onDagsterHealthIssue(e) {
+    const { healthIssue, dagsterDown, cdlDown } = e.detail || {};
+    // Yellow when dagster is down (or both); blue only when CDL is down but dagster is not
+    this.hideDagsterHealth = !(healthIssue && (dagsterDown || !cdlDown));
+    this.hideCdlHealth = !(healthIssue && cdlDown && !dagsterDown);
+  }
+
+  /**
+   * @method _readExpertAvailability
+   * @description read the current availability state from the app-expert element
+   */
+  _readExpertState() {
+    const appExpert = this.shadowRoot?.querySelector('app-expert');
+    this.expertAvailability = {
+      collabProjects: appExpert?.collabProjects || false,
+      commPartner: appExpert?.commPartner || false,
+      industProjects: appExpert?.industProjects || false,
+      mediaInterviews: appExpert?.mediaInterviews || false
+    };
+    // Use the canonical expertId from app-expert (resolved from fetched data, not the URL)
+    // to ensure dagster receives the ark ID regardless of what the URL contains
+    if( appExpert?.expertId ) {
+      this.pageExpertId = appExpert.expertId;
+    }
+  }
+
+  /**
+   * @method _onDagsterDownContactUs
+   * @description open the dagster-down request-change modal when "contact us" is clicked
+   *
+   * @param {Event} e
+   */
+  _onDagsterDownContactUs(e) {
+    e.preventDefault();
+    this._readExpertState();
+    this.showDagsterDownModal = true;
+  }
+
+  /**
+   * @method _onCdlDownContactUs
+   * @description open the CDL-down request-change modal when "contact us" is clicked
+   *
+   * @param {Event} e
+   */
+  _onCdlDownContactUs(e) {
+    e.preventDefault();
+    this._readExpertState();
+    this.showCdlDownModal = true;
   }
 
 }

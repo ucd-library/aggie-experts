@@ -29,6 +29,7 @@ export default function render() {
         background-color: rgba(0,0,0,0.5);
       }
 
+      /*
       .container.error-mode .overlay {
         background-color: var(--color-double-decker);
       }
@@ -41,6 +42,31 @@ export default function render() {
 
       .container.error-mode .overlay .header-section ucdlib-icon {
         fill: white;
+      }
+      */
+
+      .container.error-mode .overlay h4 {
+        color: var(--secondary-double-decker, #C10230);
+      }
+
+      .container.error-mode .overlay .header-section {
+        border-bottom: none;
+        background-color: #FFE6E7;
+      }
+
+      .container.error-mode .overlay .header-section::after {
+        content: none;
+      }
+
+      .container.error-mode .overlay .header-section h4 {
+        display: flex;
+      }
+      
+      .container.error-mode .overlay .header-section .error-icon {
+        fill: var(--secondary-double-decker, #C10230);    
+        height: 2rem;
+        width: 2rem;
+        padding-right: .5rem;  
       }
 
       .overlay {
@@ -56,6 +82,7 @@ export default function render() {
         max-width: 650px;
         background-color: white;
         border-radius: 25px;
+        overflow: hidden;
       }
 
       .overlay h4 {
@@ -67,7 +94,20 @@ export default function render() {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        position: relative;
+        margin: -2rem -2rem 0 -2rem;
+        padding: 2rem 2rem 1rem 2rem;
         padding-bottom: 1rem;
+        border-top-left-radius: 25px;
+        border-top-right-radius: 25px;
+      }
+
+      .overlay .header-section::after {
+        content: '';
+        position: absolute;
+        left: 2rem;
+        right: 2rem;
+        bottom: 0;
         border-bottom: 4px dotted var(--color-aggie-gold);
       }
 
@@ -132,16 +172,23 @@ export default function render() {
         height: 1rem;
         width: 1rem;
       }
+
+      .body-section {
+        padding-top: 1rem;
+      }
     </style>
 
     ${!this.visible ? '' : html`
     <div class="container${this.errorMode ? ' error-mode' : ''}">
       <div class="overlay">
         <div class="header-section">
-          <h4>${this.title}</h4>
+          <h4>
+            <ucdlib-icon icon="ucdlib-experts:fa-exclamation-triangle" ?hidden="${!this.errorMode}" class="error-icon"></ucdlib-icon>  
+            ${this.title}
+          </h4>
           <ucdlib-icon icon="ucdlib-experts:fa-xmark" @click="${this._onCancel}"></ucdlib-icon>
         </div>
-        <div class="body-section">
+        <div class="body-section" @click="${this._onBodyClick}">
           ${unsafeHTML(this.content)}
         </div>
         <div class="footer-section">
