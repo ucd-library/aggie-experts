@@ -31,12 +31,32 @@ async function fetchMissingTopics(db, opts = {}) {
 
   let done = 0;
   for (const doi of dois) {
-    let result;
+    let result = null;
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-      result = await fetchWorkByDoi(doi, { mailto, apiKey });
+      try {
+        result = await fetchWorkByDoi(doi, { mailto, apiKey });
+      } catch (err) {
+        // Network-level failure (connection reset, DNS hiccup, the machine
+        // waking from sleep mid-request) rather than an HTTP status — retry
+        // with the same backoff as a 429 instead of crashing the whole run.
+        logger.warn(`openalex fetch: network error on ${doi}, attempt ${attempt}/${MAX_ATTEMPTS}: ${err.message}`);
+        result = null;
+        await sleep(delayMs * attempt * 5);
+        continue;
+      }
       if (result.status !== 429) break;
       logger.warn(`openalex fetch: rate limited on ${doi}, attempt ${attempt}/${MAX_ATTEMPTS}`);
       await sleep(delayMs * attempt * 5);
+    }
+
+    if (result === null) {
+      // Every attempt failed at the network level — leave this DOI
+      // uncached so the next 'fetch' run retries it, rather than recording
+      // a fake status or crashing the rest of the batch.
+      logger.error(`openalex fetch: giving up on ${doi} after ${MAX_ATTEMPTS} network errors, will retry next run`);
+      done++;
+      await sleep(delayMs);
+      continue;
     }
 
     upsert.run(doi, result.status, result.json ? JSON.stringify(result.json) : null);
