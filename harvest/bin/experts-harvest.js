@@ -9,6 +9,7 @@ program
   .command('extract', 'extract data from CDL, IAM, and Keycloak')
   .command('list', 'list users from CDL group')
   .command('load', 'load data into database(s)')
+  .command('openalex', 'build the OpenAlex-derived subject/topic dataset')
   .command('reporting', 'import/export reporting database')
   .command('transform', 'transform extracted data into Aggie Experts format')
 
