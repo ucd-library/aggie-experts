@@ -23,6 +23,7 @@ function withFetchOptions(cmd) {
     .option('--api-key <key>', 'OpenAlex API key (takes precedence over --mailto when set)', DEFAULT_API_KEY)
     .option('--limit <n>', 'Limit number of DOIs to fetch (for testing)', v => parseInt(v, 10))
     .option('--delay-ms <ms>', 'Delay between OpenAlex requests, in milliseconds', v => parseInt(v, 10), 110)
+    .option('--concurrency <n>', 'Number of DOIs to fetch in parallel', v => parseInt(v, 10), 10)
     .option('--force', 'Re-fetch DOIs even if already cached', false);
 }
 
@@ -52,6 +53,7 @@ withFetchOptions(withDbOption(program.command('fetch')))
       apiKey: opts.apiKey,
       limit: opts.limit,
       delayMs: opts.delayMs,
+      concurrency: opts.concurrency,
       force: opts.force
     });
     db.close();
@@ -79,6 +81,7 @@ withFetchOptions(withDbOption(program.command('run')))
       apiKey: opts.apiKey,
       limit: opts.limit,
       delayMs: opts.delayMs,
+      concurrency: opts.concurrency,
       force: opts.force
     });
     await buildWorkTopics(db);
