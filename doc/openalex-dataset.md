@@ -60,6 +60,43 @@ static attributes of whichever Topic matched — there's no independent
 confidence value for them in the API. Rather than invent one, `subfield_score`/
 `field_score`/`domain_score` are left `NULL` in the view.
 
+## Finding works OpenAlex couldn't find
+
+A DOI can end up with no topics for two different reasons, and it's worth
+telling them apart:
+
+- **Not yet fetched** — no row in `openalex_response_cache` at all. A future
+  `fetch` run will pick it up.
+- **Fetched, but OpenAlex has no record for it** — a cached row exists with
+  `http_status != 200` (almost always `404`). This is a real answer from
+  OpenAlex's server, not a network error — see the distinction between
+  `openalex fetch: ... returned HTTP <code>` (a completed request) vs
+  `openalex fetch: network error on ...` (a connection failure, retried
+  automatically) in the `fetch` step's log output. A `404` won't fix itself on
+  its own; it usually means a DOI typo/formatting issue in the harvest data,
+  or a work OpenAlex genuinely hasn't indexed.
+
+```sql
+-- DOIs OpenAlex explicitly returned an error for (mostly 404s)
+SELECT c.doi, c.http_status, w.title
+FROM openalex_response_cache c
+JOIN work w ON w.doi = c.doi
+WHERE c.http_status != 200
+ORDER BY c.doi;
+
+-- DOIs not yet attempted at all
+SELECT w.doi, w.title
+FROM work w
+LEFT JOIN openalex_response_cache c ON c.doi = w.doi
+WHERE c.doi IS NULL;
+```
+
+Note that a DOI cached with a non-`200` status isn't excluded from future
+`fetch` runs (only a cached `200` is skipped), so these do get retried
+automatically on the next run — harmless for a permanently-invalid DOI, but
+worth knowing if you're trying to reason about why the counts change between
+runs.
+
 ## Underlying tables
 
 | Table | Purpose |
