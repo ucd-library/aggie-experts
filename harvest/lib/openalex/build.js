@@ -58,13 +58,20 @@ const DATASET_VIEW_SQL = `
   LEFT JOIN topic t       ON t.topic_id = wt.topic_id
 `;
 
+// Batch size for streaming through cached responses. Kept small on purpose:
+// each row's raw_json is a multi-KB blob, and .all() on the full query would
+// materialize every one of them (potentially hundreds of thousands) in
+// memory at once — .iterate() + small batches keeps memory bounded regardless 
+// of table size.
+const BATCH_SIZE = 1000;
+
 function buildWorkTopics(db) {
-  const rows = db.prepare(`
+  const selectStmt = db.prepare(`
     SELECT w.doi, c.raw_json
     FROM work w
     JOIN openalex_response_cache c ON c.doi = w.doi
     WHERE c.http_status = 200 AND c.raw_json IS NOT NULL
-  `).all();
+  `);
 
   const clearStmt = db.prepare('DELETE FROM work_topic WHERE doi = ?');
   const insertStmt = db.prepare(`
@@ -72,8 +79,8 @@ function buildWorkTopics(db) {
     VALUES (?, ?, ?, ?)
   `);
 
-  const txn = db.transaction((rows) => {
-    for (const row of rows) {
+  const processBatch = db.transaction((batch) => {
+    for (const row of batch) {
       const parsed = JSON.parse(row.raw_json);
       const topics = Array.isArray(parsed.topics) ? parsed.topics : [];
       clearStmt.run(row.doi);
@@ -84,13 +91,28 @@ function buildWorkTopics(db) {
       });
     }
   });
-  txn(rows);
+
+  let count = 0;
+  let batch = [];
+  for (const row of selectStmt.iterate()) {
+    batch.push(row);
+    if (batch.length >= BATCH_SIZE) {
+      processBatch(batch);
+      count += batch.length;
+      batch = [];
+      logger.info(`openalex build: processed ${count} work(s)`);
+    }
+  }
+  if (batch.length) {
+    processBatch(batch);
+    count += batch.length;
+  }
 
   db.exec('DROP VIEW IF EXISTS dataset');
   db.exec(DATASET_VIEW_SQL);
 
-  logger.info(`openalex build: processed ${rows.length} cached work(s)`);
-  return { works: rows.length };
+  logger.info(`openalex build: processed ${count} cached work(s)`);
+  return { works: count };
 }
 
 export { buildWorkTopics };
