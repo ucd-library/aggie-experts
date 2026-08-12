@@ -36,7 +36,7 @@ tables.
 install.packages(c("DBI", "RSQLite"))  # first time only
 
 library(DBI)
-con <- dbConnect(RSQLite::SQLite(), "openalex-experts.sqlite")
+con <- dbConnect(RSQLite::SQLite(), "openalex-experts-light.sqlite")
 
 dataset <- dbGetQuery(con, "SELECT * FROM dataset")
 
@@ -140,7 +140,8 @@ runs.
 | `expert_work` | join table: `(expert_id, doi)` — which experts are associated with which work |
 | `topic` | OpenAlex's topic taxonomy: `topic_id`, `topic_name`, `subfield_id/name`, `field_id/name`, `domain_id/name`, plus `keywords` and `summary` (useful cluster descriptions for the faculty-facing vocabulary test) and `wikipedia_url`. Seeded from the mapping CSV; a handful of rows may be inserted from live OpenAlex responses if OpenAlex's taxonomy has grown since the CSV snapshot |
 | `work_topic` | `(doi, topic_id)` with `score` and `rank` (`rank` 1 = OpenAlex's `primary_topic`) — the actual per-work topic assignments. `(doi, topic_id)` is the primary key; a handful of real OpenAlex works list the same topic twice in their `topics` array (upstream data noise, confirmed against the live API, not a bug in this pipeline), so inserts use `INSERT OR IGNORE` — the first (highest-ranked) occurrence wins and the duplicate is silently dropped rather than crashing the `build` step |
-| `openalex_response_cache` | Raw OpenAlex API response JSON per DOI, plus `http_status` and `fetched_at`. This is the fetch cache, not meant for direct querying, but useful if you need a field OpenAlex returns that isn't in the normalized tables |
+| `openalex_response_cache` | Raw OpenAlex API response JSON per DOI, plus `http_status` and `fetched_at`. This is the fetch cache, not meant for direct querying, but useful if you need a field OpenAlex returns that isn't in the normalized tables. This table is ommitted from the `-light` 
+of the database. |
 
 **Note on `work.doi` as the key:** the harvest postgres database can have the
 same DOI under more than one internal `work_id` (e.g. the same paper
