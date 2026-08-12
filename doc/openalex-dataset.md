@@ -30,6 +30,24 @@ Any SQLite browser (e.g. [DB Browser for SQLite](https://sqlitebrowser.org/))
 can also open the file directly — the `dataset` view shows up alongside the
 tables.
 
+**From R / RStudio**, via the standard `DBI` + `RSQLite` packages:
+
+```r
+install.packages(c("DBI", "RSQLite"))  # first time only
+
+library(DBI)
+con <- dbConnect(RSQLite::SQLite(), "openalex-experts.sqlite")
+
+dataset <- dbGetQuery(con, "SELECT * FROM dataset")
+
+dbDisconnect(con)
+```
+
+`dataset` comes back as a regular data frame — the view does the join/flatten
+work, so no further `dplyr` joins across tables are needed unless you want
+to dig into `topic.keywords`/`topic.summary` or the raw
+`openalex_response_cache` JSON directly.
+
 ## The `dataset` view
 
 | Column | Description |
