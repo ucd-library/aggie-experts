@@ -87,7 +87,7 @@ Science/PubMed) with a correct DOI, and one "orphan" duplicate backed only by
 a single low-quality source (a bare `dspace` record, or one malformed Scopus 
 entry) with the bad DOI. The clean duplicate is never linked to the expert's 
 authorship in Elements — the orphan is — so it's the orphan's bad DOI that 
-reachespostgres and then this dataset. This pipeline's own source-scoring 
+reaches postgres and then this dataset. This pipeline's own source-scoring 
 logic (`computeRecordScore`/`WORKS_SOURCE_ORDER` in
 [`harvest/lib/transform/utils.js`](../harvest/lib/transform/utils.js)) can't
 fix this: it only picks the best source *within* one relationship's set of
