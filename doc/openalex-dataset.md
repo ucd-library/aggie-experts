@@ -77,10 +77,7 @@ A DOI can end up with no topics for two different reasons:
 **Most `404`s traced back to malformed DOIs already in the harvest data,
 not gaps in OpenAlex's coverage.** These aren't auto-corrected by this 
 pipeline — the fix is correcting the DOI in Elements at the source.
-
-**Root cause:** these DOIs are malformed already in the raw CDL/Symplectic
-Elements data before any Aggie Experts transform code touches them. The actual 
-mechanism, for several of the DOIs traced: **Elements has two separate internal 
+For several of the DOIs traced: **Elements has two separate internal 
 publication records for the same article** in the researcher's feed — one 
 "clean" duplicate backed by good sources (Crossref/Scopus/Dimensions/Web of 
 Science/PubMed) with a correct DOI, and one "orphan" duplicate backed only by 
