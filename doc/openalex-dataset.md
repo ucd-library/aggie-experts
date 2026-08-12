@@ -62,8 +62,7 @@ confidence value for them in the API. Rather than invent one, `subfield_score`/
 
 ## Finding works OpenAlex couldn't find
 
-A DOI can end up with no topics for two different reasons, and it's worth
-telling them apart:
+A DOI can end up with no topics for two different reasons:
 
 - **Not yet fetched** — no row in `openalex_response_cache` at all. A future
   `fetch` run will pick it up.
@@ -72,47 +71,29 @@ telling them apart:
   OpenAlex's server, not a network error — see the distinction between
   `openalex fetch: ... returned HTTP <code>` (a completed request) vs
   `openalex fetch: network error on ...` (a connection failure, retried
-  automatically) in the `fetch` step's log output. A `404` won't fix itself on
-  its own.
+  automatically) in the `fetch` step's log output. A `404` won't fix itself
+  on its own.
 
 **Most `404`s traced back to malformed DOIs already in the harvest data,
-not gaps in OpenAlex's coverage.** Spot-checking a sample of the ~500 `404`s
-from the full run and re-querying corrected versions directly against the
-live API confirmed real matches for most of them:
+not gaps in OpenAlex's coverage.** These aren't auto-corrected by this 
+pipeline — the fix is correcting the DOI in Elements at the source.
 
-| DOI as stored in harvest data | Result | Corrected form | Result |
-|---|---|---|---|
-| `10.1002/nme.994)` | 404 | `10.1002/nme.994` (stray trailing `)`) | 200 |
-| `10.1007/978-3-319-14418-4_5.` | 404 | `...4_5` (stray trailing `.`) | 200 |
-| `10.1002/9781118922798_13` | 404 | `10.1002/9781118922798.ch13` (wrong chapter-suffix convention — should be `.chNN`, not `_NN`) | 200 |
-| *(DOI ending in the literal text `%23`)* | 404 | Same DOI with an actual `#` character | 200 |
-
-**Root cause, confirmed by tracing several of these through every ETL stage
-stored in CaskFS (raw CDL feed → `ae-std` transform → `webapp` transform →
-postgres):** these DOIs are malformed already in the raw CDL/Symplectic
-Elements data, byte-for-byte, before any Aggie Experts transform code
-touches them — not a bug introduced by `harvest/lib/transform/` or
-`harvest/lib/api/sitefarm.js`, which pass DOI values through untouched as
-opaque strings the whole way. The actual mechanism, for several of the DOIs
-traced: **Elements has two separate internal publication records for the
-same real article** in the researcher's feed — one "clean" duplicate backed
-by good sources (Crossref/Scopus/Dimensions/Web of Science/PubMed) with a
-correct DOI, and one "orphan" duplicate backed only by a single low-quality
-source (a bare `dspace` record, or one malformed Scopus entry) with the bad
-DOI. The clean duplicate is never linked to the expert's authorship in
-Elements — the orphan is — so it's the orphan's bad DOI that reaches
-postgres and then this dataset. This pipeline's own source-scoring logic
-(`computeRecordScore`/`WORKS_SOURCE_ORDER` in
+**Root cause:** these DOIs are malformed already in the raw CDL/Symplectic
+Elements data before any Aggie Experts transform code touches them. The actual 
+mechanism, for several of the DOIs traced: **Elements has two separate internal 
+publication records for the same article** in the researcher's feed — one 
+"clean" duplicate backed by good sources (Crossref/Scopus/Dimensions/Web of 
+Science/PubMed) with a correct DOI, and one "orphan" duplicate backed only by 
+a single low-quality source (a bare `dspace` record, or one malformed Scopus 
+entry) with the bad DOI. The clean duplicate is never linked to the expert's 
+authorship in Elements — the orphan is — so it's the orphan's bad DOI that 
+reachespostgres and then this dataset. This pipeline's own source-scoring 
+logic (`computeRecordScore`/`WORKS_SOURCE_ORDER` in
 [`harvest/lib/transform/utils.js`](../harvest/lib/transform/utils.js)) can't
 fix this: it only picks the best source *within* one relationship's set of
 records, and the clean/orphan duplicates here are two entirely separate
 relationships, not multiple sources under one.
 
-Practical upshot: these aren't fixable by changing anything in this
-pipeline, short of either correcting the DOI in Elements at the source, or
-adding a manual override list here for the small number of cases that
-matter. Worth a manual look at the full `404` list if getting these specific
-works into the dataset matters for the faculty vocabulary test.
 
 ```sql
 -- DOIs OpenAlex explicitly returned an error for (mostly 404s)

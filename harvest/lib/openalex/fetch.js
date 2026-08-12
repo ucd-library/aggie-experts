@@ -10,8 +10,7 @@ function sleep(ms) {
 // Fetch a single DOI, retrying on both rate-limiting (429) and network-level
 // failures (connection reset, DNS hiccup, machine waking from sleep
 // mid-request) with the same backoff. Returns null if every attempt failed
-// at the network level — the caller leaves that DOI uncached so the next
-// 'fetch' run retries it, rather than crashing or recording a fake status.
+// at the network level.
 //
 // Deliberately silent per-attempt (no per-retry logging) — under
 // concurrency, most 429s/network blips resolve within a retry or two, and
