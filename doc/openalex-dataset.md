@@ -73,8 +73,46 @@ telling them apart:
   `openalex fetch: ... returned HTTP <code>` (a completed request) vs
   `openalex fetch: network error on ...` (a connection failure, retried
   automatically) in the `fetch` step's log output. A `404` won't fix itself on
-  its own; it usually means a DOI typo/formatting issue in the harvest data,
-  or a work OpenAlex genuinely hasn't indexed.
+  its own.
+
+**Most `404`s traced back to malformed DOIs already in the harvest data,
+not gaps in OpenAlex's coverage.** Spot-checking a sample of the ~500 `404`s
+from the full run and re-querying corrected versions directly against the
+live API confirmed real matches for most of them:
+
+| DOI as stored in harvest data | Result | Corrected form | Result |
+|---|---|---|---|
+| `10.1002/nme.994)` | 404 | `10.1002/nme.994` (stray trailing `)`) | 200 |
+| `10.1007/978-3-319-14418-4_5.` | 404 | `...4_5` (stray trailing `.`) | 200 |
+| `10.1002/9781118922798_13` | 404 | `10.1002/9781118922798.ch13` (wrong chapter-suffix convention — should be `.chNN`, not `_NN`) | 200 |
+| *(DOI ending in the literal text `%23`)* | 404 | Same DOI with an actual `#` character | 200 |
+
+**Root cause, confirmed by tracing several of these through every ETL stage
+stored in CaskFS (raw CDL feed → `ae-std` transform → `webapp` transform →
+postgres):** these DOIs are malformed already in the raw CDL/Symplectic
+Elements data, byte-for-byte, before any Aggie Experts transform code
+touches them — not a bug introduced by `harvest/lib/transform/` or
+`harvest/lib/api/sitefarm.js`, which pass DOI values through untouched as
+opaque strings the whole way. The actual mechanism, for several of the DOIs
+traced: **Elements has two separate internal publication records for the
+same real article** in the researcher's feed — one "clean" duplicate backed
+by good sources (Crossref/Scopus/Dimensions/Web of Science/PubMed) with a
+correct DOI, and one "orphan" duplicate backed only by a single low-quality
+source (a bare `dspace` record, or one malformed Scopus entry) with the bad
+DOI. The clean duplicate is never linked to the expert's authorship in
+Elements — the orphan is — so it's the orphan's bad DOI that reaches
+postgres and then this dataset. This pipeline's own source-scoring logic
+(`computeRecordScore`/`WORKS_SOURCE_ORDER` in
+[`harvest/lib/transform/utils.js`](../harvest/lib/transform/utils.js)) can't
+fix this: it only picks the best source *within* one relationship's set of
+records, and the clean/orphan duplicates here are two entirely separate
+relationships, not multiple sources under one.
+
+Practical upshot: these aren't fixable by changing anything in this
+pipeline, short of either correcting the DOI in Elements at the source, or
+adding a manual override list here for the small number of cases that
+matter. Worth a manual look at the full `404` list if getting these specific
+works into the dataset matters for the faculty vocabulary test.
 
 ```sql
 -- DOIs OpenAlex explicitly returned an error for (mostly 404s)
@@ -105,7 +143,7 @@ runs.
 | `work` | `doi` (primary key), `title` — one row per DOI |
 | `expert_work` | join table: `(expert_id, doi)` — which experts are associated with which work |
 | `topic` | OpenAlex's topic taxonomy: `topic_id`, `topic_name`, `subfield_id/name`, `field_id/name`, `domain_id/name`, plus `keywords` and `summary` (useful cluster descriptions for the faculty-facing vocabulary test) and `wikipedia_url`. Seeded from the mapping CSV; a handful of rows may be inserted from live OpenAlex responses if OpenAlex's taxonomy has grown since the CSV snapshot |
-| `work_topic` | `(doi, topic_id)` with `score` and `rank` (`rank` 1 = OpenAlex's `primary_topic`) — the actual per-work topic assignments |
+| `work_topic` | `(doi, topic_id)` with `score` and `rank` (`rank` 1 = OpenAlex's `primary_topic`) — the actual per-work topic assignments. `(doi, topic_id)` is the primary key; a handful of real OpenAlex works list the same topic twice in their `topics` array (upstream data noise, confirmed against the live API, not a bug in this pipeline), so inserts use `INSERT OR IGNORE` — the first (highest-ranked) occurrence wins and the duplicate is silently dropped rather than crashing the `build` step |
 | `openalex_response_cache` | Raw OpenAlex API response JSON per DOI, plus `http_status` and `fetched_at`. This is the fetch cache, not meant for direct querying, but useful if you need a field OpenAlex returns that isn't in the normalized tables |
 
 **Note on `work.doi` as the key:** the harvest postgres database can have the

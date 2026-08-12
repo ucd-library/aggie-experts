@@ -58,29 +58,35 @@ const DATASET_VIEW_SQL = `
   LEFT JOIN topic t       ON t.topic_id = wt.topic_id
 `;
 
-// Batch size for streaming through cached responses. Kept small on purpose:
-// each row's raw_json is a multi-KB blob, and .all() on the full query would
-// materialize every one of them (potentially hundreds of thousands) in
-// memory at once — .iterate() + small batches keeps memory bounded regardless 
-// of table size.
-const BATCH_SIZE = 1000;
+// Batch size for processing cached responses. Kept small on purpose: each
+// row's raw_json is a multi-KB blob, and pulling every one of them
+// (potentially hundreds of thousands) into memory can cause an OOM crash. 
+// Also kept under SQLite's historical 999-parameter limit, since each 
+// batch is fetched via a single "doi IN (?,?,...)" query.
+const BATCH_SIZE = 500;
 
 function buildWorkTopics(db) {
-  const selectStmt = db.prepare(`
-    SELECT w.doi, c.raw_json
+  // Only the (small) doi strings, not the raw_json blobs, so holding the
+  // full list in memory is cheap even at hundreds of thousands of rows.
+  const dois = db.prepare(`
+    SELECT w.doi
     FROM work w
     JOIN openalex_response_cache c ON c.doi = w.doi
     WHERE c.http_status = 200 AND c.raw_json IS NOT NULL
-  `);
+  `).all().map(r => r.doi);
 
   const clearStmt = db.prepare('DELETE FROM work_topic WHERE doi = ?');
+  // OR IGNORE: a handful of OpenAlex works list the same topic twice in
+  // their "topics" array — real upstream data noise, not our bug. Keep the
+  // first (highest-ranked) occurrence and silently drop the duplicate
+  // rather than crashing the whole batch on the primary key conflict.
   const insertStmt = db.prepare(`
-    INSERT INTO work_topic (doi, topic_id, score, rank)
+    INSERT OR IGNORE INTO work_topic (doi, topic_id, score, rank)
     VALUES (?, ?, ?, ?)
   `);
 
-  const processBatch = db.transaction((batch) => {
-    for (const row of batch) {
+  const processBatch = db.transaction((rows) => {
+    for (const row of rows) {
       const parsed = JSON.parse(row.raw_json);
       const topics = Array.isArray(parsed.topics) ? parsed.topics : [];
       clearStmt.run(row.doi);
@@ -93,19 +99,21 @@ function buildWorkTopics(db) {
   });
 
   let count = 0;
-  let batch = [];
-  for (const row of selectStmt.iterate()) {
-    batch.push(row);
-    if (batch.length >= BATCH_SIZE) {
-      processBatch(batch);
-      count += batch.length;
-      batch = [];
-      logger.info(`openalex build: processed ${count} work(s)`);
-    }
-  }
-  if (batch.length) {
-    processBatch(batch);
-    count += batch.length;
+  for (let i = 0; i < dois.length; i += BATCH_SIZE) {
+    const chunk = dois.slice(i, i + BATCH_SIZE);
+    // Fully materialize this chunk's raw_json via .all() (not .iterate())
+    // BEFORE opening the write transaction below — better-sqlite3 refuses
+    // to start a transaction while another statement on the same
+    // connection is still open/paused, which a live .iterate() cursor
+    // spanning the transaction would otherwise be.
+    const placeholders = chunk.map(() => '?').join(',');
+    const rows = db.prepare(`
+      SELECT doi, raw_json FROM openalex_response_cache WHERE doi IN (${placeholders})
+    `).all(...chunk);
+
+    processBatch(rows);
+    count += rows.length;
+    logger.info(`openalex build: processed ${count}/${dois.length} work(s)`);
   }
 
   db.exec('DROP VIEW IF EXISTS dataset');
