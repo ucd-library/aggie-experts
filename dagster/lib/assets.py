@@ -618,7 +618,7 @@ def send_slack_notification(context: AssetExecutionContext, config: SlackNotifyC
 )
 def sync_web_assets(context: AssetExecutionContext, config: SyncWebAssetsConfig) -> None:
     """Sync a local static web asset (currently: the FAQ markdown) into CaskFS via the admin CLI."""
-    cmd = ["experts", "admin", "sync-web-assets"]
+    cmd = ["experts", "harvest", "sync-web-assets"]
     if config.source is not None:
         cmd += ["--source", config.source]
     if config.dest is not None:

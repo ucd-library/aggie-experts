@@ -11,6 +11,7 @@ program
   .command('load', 'load data into database(s)')
   .command('reporting', 'import/export reporting database')
   .command('transform', 'transform extracted data into Aggie Experts format')
+  .command('sync-web-assets', 'sync a local static web asset into CaskFS')
 
 program
   .command('year-week')
