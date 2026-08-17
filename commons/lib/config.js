@@ -343,6 +343,20 @@ const config = {
       etlUsersJob : env.DAGSTER_ETL_USERS_JOB || 'etl_users_job',
       gcs_etl_users_job : env.DAGSTER_GCS_ETL_USERS_JOB || 'gcs_etl_users_job'
     }
+  },
+
+  caskfs : {
+    // base URL of the CaskFS HTTP server, e.g. http://caskfs-ui:3000
+    host : env.CASK_URL || 'http://caskfs-ui:3000',
+    // basepath the CaskFS server itself is mounted at (see CASKFS_WEBAPP_PATH_PREFIX on the caskfs-ui service)
+    pathPrefix : env.CASKFS_WEBAPP_PATH_PREFIX || '',
+    apiPath : env.CASK_API_PATH || '/api',
+    // fixed path where the FAQ markdown source is synced to in CaskFS
+    faqPath : env.CASKFS_FAQ_PATH || '/webapp-static-assets/faq/faq.md',
+    // how long the webapp may serve a previously-fetched copy before re-checking CaskFS
+    faqCacheTtlMs : parseInt(env.CASKFS_FAQ_CACHE_TTL_MS) || (24 * 60 * 60 * 1000),
+    // when false, the FAQ markdown is served from the bundled local file only - CaskFS is never queried
+    faqUseCaskfs : env.CLIENT_FAQ_USE_CASKFS === 'true'
   }
 }
 

@@ -170,36 +170,13 @@ export default class AppFaq extends Mixin(LitElement)
   }
 
   async _fetchFaqMarkdown() {
-    const useGcs = APP_CONFIG?.faqUseGcs === true;
-    const markdownUrl = APP_CONFIG?.faqMarkdownUrl || 'https://storage.googleapis.com/aggie-experts-static-assets';
+    const markdownUrl = '/static-assets/faq-markdown';
 
-    if( !useGcs ) {
-      const localMarkdownUrl = '/static-assets/faq/faq.md';
+    const resp = await fetch(markdownUrl);
+    if( !resp.ok ) throw new Error(`Failed to fetch ${markdownUrl}: ${resp.status}`);
 
-      try {
-        const resp = await fetch(localMarkdownUrl);
-        if( !resp.ok ) throw new Error(`Failed to fetch ${localMarkdownUrl}: ${resp.status}`);
-        this.imgPath = '/static-assets/faq/images/';
-        return await resp.text();
-      } catch(e) {
-        throw e;
-      }
-    }
-
-    const fullUrl = markdownUrl.endsWith('/') ? markdownUrl + 'faq/faq.md' : markdownUrl + '/faq/faq.md';
-
-    try {
-      const resp = await fetch(fullUrl);
-      if( !resp.ok ) throw new Error(`Failed to fetch ${fullUrl}: ${resp.status}`);
-      const markdown = await resp.text();
-
-      const baseUrl = markdownUrl.endsWith('/') ? markdownUrl.slice(0, -1) : markdownUrl;
-      this.imgPath = baseUrl + '/faq/images/';
-      
-      return markdown;
-    } catch(e) {
-      throw e;
-    }
+    this.imgPath = '/static-assets/faq/images/';
+    return await resp.text();
   }
 
   async _loadFaqContent() {

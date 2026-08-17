@@ -15,6 +15,7 @@ from .jobs import (
     update_scholarly_record_job,
     update_expert_job,
     update_expert_availability_job,
+    sync_web_assets_job,
 )
 
 
@@ -169,12 +170,12 @@ def etl_notify_and_continue(context: dg.SensorEvaluationContext):
 
 @dg.run_failure_sensor(
     name="admin_update_failure_notifier",
-    description="Send a Slack notification when an admin update job (scholarly record, expert, or availability) fails.",
-    monitored_jobs=[update_scholarly_record_job, update_expert_job, update_expert_availability_job],
+    description="Send a Slack notification when an admin update job (scholarly record, expert, availability, or FAQ sync) fails.",
+    monitored_jobs=[update_scholarly_record_job, update_expert_job, update_expert_availability_job, sync_web_assets_job],
     minimum_interval_seconds=30,
 )
 def admin_update_failure_sensor(context: dg.RunFailureSensorContext):
-    """Fire a Slack alert when any of the three UI-triggered admin update jobs fail."""
+    """Fire a Slack alert when any of the UI-triggered admin update jobs fail."""
     run = context.dagster_run
     job_name = run.job_name
     run_id = run.run_id

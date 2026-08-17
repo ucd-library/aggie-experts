@@ -25,6 +25,7 @@ from .assets import (
     update_expert_postgres,
     update_expert_availability_es,
     update_expert_availability_cdl,
+    sync_web_assets,
 )
 
 
@@ -84,6 +85,13 @@ update_expert_availability_job = dg.define_asset_job(
     name="update_expert_availability_job",
     description="Update expert availability labels in Elasticsearch and CDL/Elements (two parallel steps).",
     selection=dg.AssetSelection.assets(update_expert_availability_es, update_expert_availability_cdl),
+    tags={"dagster/priority": "2"},
+)
+
+sync_web_assets_job = dg.define_asset_job(
+    name="sync_web_assets_job",
+    description="Sync a local static web asset (currently: the FAQ markdown) into CaskFS.",
+    selection=dg.AssetSelection.assets(sync_web_assets),
     tags={"dagster/priority": "2"},
 )
 
