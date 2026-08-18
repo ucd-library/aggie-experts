@@ -348,8 +348,8 @@ const config = {
   caskfs : {
     // base URL of the CaskFS HTTP server, e.g. http://caskfs-ui:3000
     host : env.CASK_URL || 'http://caskfs-ui:3000',
-    // basepath the CaskFS server itself is mounted at (see CASKFS_WEBAPP_PATH_PREFIX on the caskfs-ui service)
-    pathPrefix : env.CASKFS_WEBAPP_PATH_PREFIX || '',
+    // basepath the CaskFS server itself is mounted at everywhere it's deployed (see CASKFS_WEBAPP_PATH_PREFIX on the caskfs-ui service)
+    pathPrefix : '/cask',
     apiPath : env.CASK_API_PATH || '/api',
     // fixed path where the FAQ markdown source is synced to in CaskFS
     faqPath : env.CASKFS_FAQ_PATH || '/webapp-static-assets/faq/faq.md',
