@@ -20,6 +20,10 @@ class StaticAssetsModel {
       fetchedAt: 0,
       pendingRefresh: null
     };
+    this._seoCache = {
+      value: undefined,
+      builtFromFetchedAt: undefined
+    };
   }
 
   /**
@@ -108,17 +112,35 @@ class StaticAssetsModel {
 
   /**
    * @method seo
-   * @description Build the FAQ JSON-LD for SEO, from the current FAQ markdown.
-   * Matches the .seo() convention used by the expert/work/grant models.
+   * @description Build the FAQ JSON-LD for SEO, from the current FAQ markdown. The
+   * built JSON-LD is cached alongside the markdown cache and only rebuilt when the
+   * markdown has actually changed (tracked via _faqMarkdownCache.fetchedAt) - if
+   * parsing yields no questions, the last-known-good JSON-LD is served instead of
+   * failing outright. Matches the .seo() convention used by the expert/work/grant models.
    * @returns {Promise<String>}
    */
   async seo() {
     const markdown = await this.getFaqMarkdown();
+    const markdownFetchedAt = this._faqMarkdownCache.fetchedAt;
+
+    if( this._seoCache.value !== undefined && this._seoCache.builtFromFetchedAt === markdownFetchedAt ) {
+      return this._seoCache.value;
+    }
+
     const questions = this._parseFaqQuestions(markdown);
     if( !questions.length ) {
+      if( this._seoCache.value !== undefined ) {
+        logger.warn('FAQ markdown parsed to zero questions; serving last-known-good JSON-LD');
+        return this._seoCache.value;
+      }
       throw new Error('No FAQ questions parsed from markdown');
     }
-    return this._buildJsonLd(questions);
+
+    this._seoCache = {
+      value: this._buildJsonLd(questions),
+      builtFromFetchedAt: markdownFetchedAt
+    };
+    return this._seoCache.value;
   }
 
   _buildJsonLd(parsedQuestions=[]) {

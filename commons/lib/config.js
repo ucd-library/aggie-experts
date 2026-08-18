@@ -354,10 +354,15 @@ const config = {
     // fixed path where the FAQ markdown source is synced to in CaskFS
     faqPath : env.CASKFS_FAQ_PATH || '/webapp-static-assets/faq/faq.md',
     // how long the webapp may serve a previously-fetched copy before re-checking CaskFS
-    faqCacheTtlMs : parseInt(env.CASKFS_FAQ_CACHE_TTL_MS) || (24 * 60 * 60 * 1000),
+    faqCacheTtlMs : parseIntOrDefault(env.CASKFS_FAQ_CACHE_TTL_MS, 24 * 60 * 60 * 1000),
     // when false, the FAQ markdown is served from the bundled local file only - CaskFS is never queried
     faqUseCaskfs : env.CLIENT_FAQ_USE_CASKFS === 'true'
   }
+}
+
+function parseIntOrDefault(value, fallback) {
+  const parsed = parseInt(value);
+  return Number.isNaN(parsed) ? fallback : parsed;
 }
 
 function parseK8sPort(value) {

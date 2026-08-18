@@ -1,4 +1,5 @@
 const router = require('express').Router();
+const { user_can_edit } = require('../middleware/index.js');
 const model = require('./model.js');
 
 router.route(
@@ -15,7 +16,8 @@ router.route(
 
 router.route(
   '/faq-markdown/refresh'
-).get(
+).post(
+  user_can_edit,
   async (req, res) => {
     try {
       await model.refreshFaqMarkdown();
