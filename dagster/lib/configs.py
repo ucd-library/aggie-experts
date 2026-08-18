@@ -112,6 +112,11 @@ class SlackNotifyConfig(Config):
     source: str = Field('dagster', description="Source label shown in the notification")
 
 
+class SyncWebAssetsConfig(Config):
+    source: str | None = Field(default=None, description="Local file to sync (defaults to the bundled FAQ markdown static-assets copy)")
+    dest: str | None = Field(default=None, description="Destination path in CaskFS (defaults to config.caskfs.faqPath)")
+
+
 class PurgeStaleUserPartitionsConfig(Config):
     group_id: Literal['experts', 'dev', 'sandbox'] = 'experts'  # CDL group to diff against
     force: bool = Field(

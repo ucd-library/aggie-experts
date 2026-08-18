@@ -11,7 +11,7 @@ const crypto = require('crypto');
 let experts = require('../../models/expert/index.js');
 let works = require('../../models/work/index.js');
 let grants = require('../../models/grant/index.js');
-const getFaqJsonLd = require('../models/faq-jsonld.js');
+let staticAssets = require('../../models/static-assets/index.js');
 const getFooterJsonLd = require('../models/footer-jsonld.js');
 
 let jsBundleHash = '';
@@ -25,6 +25,8 @@ module.exports = async (app) => {
   logger.info('SPA static assets directory', staticAssetsDir);
 
   app.use('/static-assets', express.static(staticAssetsDir));
+
+  app.use('/static-assets', staticAssets.api);
 
   loadJsBundleHash(assetsDir);
 
@@ -86,8 +88,6 @@ module.exports = async (app) => {
       next({
         user,
         appRoutes : config.client.appRoutes,
-        faqUseGcs : config.client.faqUseGcs,
-        faqMarkdownUrl : config.client.faqMarkdownUrl,
         dagster : config.client.dagster,
         cdlServiceDown : config.client.cdlServiceDown,
         dagsterServiceDown : config.client.dagsterServiceDown,
@@ -128,7 +128,7 @@ module.exports = async (app) => {
           expertId = 'expert/' + urlParts[1].split('?')[0];
           pageJsonLd = await experts.model.seo(expertId);
         } else if( isFaq ) {
-          pageJsonLd = await getFaqJsonLd();
+          pageJsonLd = await staticAssets.model.seo();
         }
       } catch(e) {
         // ignore and let client handle 404 if needed

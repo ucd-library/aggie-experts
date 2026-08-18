@@ -126,7 +126,6 @@ Aggie Experts uses the [UC Publication Management System](https://oapolicy.unive
 If you receive an error message, you can prevent your profile from being reinstated by logging in directly to the [UC Publication Management System](https://oapolicy.universityofcalifornia.edu/) and going to "Edit My Profile." Under "Profile Privacy", switch the settings from "Public" to "Internal." After the data are refreshed, Aggie Experts will not display any information about you, including your name.
 
 ## Data reuse for administrative purposes {#data-reuse}
-
 Aggie Experts streamlines administrative processes requiring data entry about faculty scholarship. The reduction of administrative burden on faculty and their support staff was one of the key goals driving the design of the platform. Aggie Experts currently enables data reuse for MIV, other UC Davis websites in SiteFarm, and citation managers, such as Zotero.
 
 ### How can I import my publications into MIV so that I only need to enter my information once? {#import-publications-into-miv}

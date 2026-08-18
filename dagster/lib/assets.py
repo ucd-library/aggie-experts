@@ -25,6 +25,7 @@ from .configs import (
     UpdateExpertAvailabilityConfig,
     UpdateExpertAvailabilityCdlConfig,
     SlackNotifyConfig,
+    SyncWebAssetsConfig,
 )
 from .utils import CODE_VERSION, exec
 
@@ -609,4 +610,24 @@ def send_slack_notification(context: AssetExecutionContext, config: SlackNotifyC
          "--source", config.source],
         no_json_parse=True
     )
+
+
+@dg.asset(
+    code_version=CODE_VERSION,
+    group_name="admin",
+)
+def sync_web_assets(context: AssetExecutionContext, config: SyncWebAssetsConfig) -> None:
+    """Sync a local static web asset (currently: the FAQ markdown) into CaskFS via the admin CLI."""
+    cmd = ["experts", "harvest", "sync-web-assets"]
+    if config.source is not None:
+        cmd += ["--source", config.source]
+    if config.dest is not None:
+        cmd += ["--dest", config.dest]
+
+    result = exec(cmd)
+    context.add_output_metadata(metadata={
+        "source": result.get("source"),
+        "dest": result.get("dest"),
+        "hash": result.get("hash"),
+    })
     return None

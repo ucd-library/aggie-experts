@@ -40,6 +40,9 @@ RUN cd /opt/commons && npm install --omit=dev
 COPY commons/lib /opt/commons/lib
 COPY commons/index.js /opt/commons/index.js
 
+# static web assets synced into CaskFS by `experts harvest sync-web-assets`
+COPY webapp/spa/client/static-assets /opt/webapp/spa/client/static-assets
+
 COPY dagster/defs.py /opt/harvest/dagster/defs.py
 COPY dagster/lib /opt/harvest/dagster/lib
 COPY dagster/dagster.yaml /opt/dagster/dagster_home/dagster.yaml
