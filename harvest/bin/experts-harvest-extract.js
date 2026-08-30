@@ -9,6 +9,7 @@ import cache from '../lib/cache.js';
 import { enableFromCli } from '../lib/reporting/index.js';
 import IAM from '../lib/extract/iam.js';
 import wrapUserDomain from '../lib/user-domain.js';
+import { metadataKey } from '../lib/cache-paths.js';
 
 const program = new Command();
 const env = process.env;
@@ -60,7 +61,7 @@ program.command('run')
           notFound: true
         }
       };
-      await cache.writeUserAsset(user, 'metadata.json', JSON.stringify(metadata));
+      await cache.writeUserAsset(user, metadataKey(), JSON.stringify(metadata));
       if( options.reporting || options.reportingJobId ) {
         await config.postgres.client.setUserPrivacy(user, false);
       }

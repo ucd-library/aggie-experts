@@ -1,8 +1,8 @@
 import jsonpath from 'jsonpath';
-import path from 'path';
 
 import cache from '../../cache.js';
-import { logger, config } from '@ucd-lib/experts-commons';
+import { logger } from '@ucd-lib/experts-commons';
+import { aeStdRelKey } from '../../cache-paths.js';
 
 import {transformWorks} from './works.js';
 import {transformGrants} from './grants.js';
@@ -132,7 +132,7 @@ async function saveRelationshipFiles(relationships, options) {
 
     await cache.writeUserAsset(
       options.user,
-      path.join(config.cache.aeStdFormatDir, 'rel', `${relationshipUri}.jsonld`),
+      aeStdRelKey(relationshipUri),
       graph
     );
   }

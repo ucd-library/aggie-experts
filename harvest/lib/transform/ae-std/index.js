@@ -7,15 +7,16 @@ import jsonAtomToJsonLd from './jsonatom-to-jsonld.js';
 import iamApiToJsonLd from './iam-to-jsonld.js';
 import {jsonLdToPerson} from './person.js';
 import {toRelationshipsJsonLd} from './to-relationships-jsonld.js';
+import { aeStdDirKey, metadataKey, privateMarkerKey } from '../../cache-paths.js';
 
 async function srcToAeStd(options={}) {
   options.user = wrapUserDomain(options.user);
 
   logger.info('Transforming data for user:', options.user);
-  logger.info('Root directory for transformed data:', cache.getUserPath(options.user, config.cache.aeStdFormatDir));
+  logger.info('Root directory for transformed data:', cache.getUserPath(options.user, aeStdDirKey()));
 
   logger.info('Clearing existing ae-std transformed data for user:', options.user);
-  await cache.deleteUserAsset(options.user, config.cache.aeStdFormatDir, { isDirectory: true });
+  await cache.deleteUserAsset(options.user, aeStdDirKey(), { isDirectory: true });
 
   // Transform CDL user data
   let cdlJsonLdFiles = [];
@@ -121,18 +122,18 @@ async function srcToAeStd(options={}) {
 
   await cache.writeUserAsset(
     options.user,
-    'metadata.json',
+    metadataKey(),
     JSON.stringify(metadata, null, 2)
   );
 
   if( metadata.isPublic === false ) {
     await cache.writeUserAsset(
       options.user,
-      'PRIVATE',
+      privateMarkerKey(),
       ''
     );
-  } else if( await cache.existsUserAsset(options.user, 'PRIVATE') ) {
-    await cache.deleteUserAsset(options.user, 'PRIVATE');
+  } else if( await cache.existsUserAsset(options.user, privateMarkerKey()) ) {
+    await cache.deleteUserAsset(options.user, privateMarkerKey());
   }
  
   return metadata;

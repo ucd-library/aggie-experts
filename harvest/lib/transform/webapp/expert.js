@@ -4,6 +4,7 @@ import { Graph } from './graph.js';
 import {frame, simplifiedExpert, flattenScholarlyWorksRelatedBy} from './frame.js';
 import {asArray, getNodeByType, SHORT_TYPES} from '../utils.js';
 import { generateBaseScholarlyWork } from './scholary-work.js';
+import { aeStdPersonKey, webappExpertKey, webappExpertBaseKey, webappExpertSimplifiedKey } from '../../cache-paths.js';
 
 function annotateWorkValidationFlags(node) {
   if (!node || !node['@type']) return node;
@@ -35,14 +36,14 @@ function annotateWorkValidationFlags(node) {
 async function generateBaseExpert(username, opts={}) {
   logger.info(`Running AE webapp base expert transformation for user: ${username}`);
 
-  let aeStdPersonPath = cache.getUserPath(username, 'ae-std/person.jsonld');
+  let aeStdPersonPath = cache.getUserPath(username, aeStdPersonKey());
   if( !await cache.exists(aeStdPersonPath) ) {
     logger.warn(`No ae-std person.jsonld found for user ${username} at path ${aeStdPersonPath}`);
     return null;
   }
 
   // Read the main expert graph
-  const aeStdPerson = await cache.readUserAsset(username, 'ae-std/person.jsonld');
+  const aeStdPerson = await cache.readUserAsset(username, aeStdPersonKey());
   
   const expertGraph = JSON.parse(aeStdPerson);
 
@@ -66,7 +67,7 @@ async function generateBaseExpert(username, opts={}) {
   if( opts.write ) {
     await cache.writeUserAsset(
       username,
-      'webapp/expert-base.jsonld',
+      webappExpertBaseKey(),
       JSON.stringify(node, null, 2)
     );
   }
@@ -84,7 +85,7 @@ async function generateSimplifiedExpert(username, opts={}) {
     expertNode = await generateBaseExpert(username, {write: false});
   } else {
     // If not fresh, we can attempt to read the already framed expert data (faster)
-    expertNode = JSON.parse(await cache.readUserAsset(username, 'webapp/expert-base.jsonld'));
+    expertNode = JSON.parse(await cache.readUserAsset(username, webappExpertBaseKey()));
   }
 
   let simplified = simplifiedExpert(expertNode);
@@ -92,7 +93,7 @@ async function generateSimplifiedExpert(username, opts={}) {
   if( opts.write ) {
     await cache.writeUserAsset(
       username,
-      'webapp/expert-simplified.jsonld',
+      webappExpertSimplifiedKey(),
       JSON.stringify(simplified, null, 2)
     );
   }
@@ -111,7 +112,7 @@ async function generateExpert(username, opts={}) {
     expertNode = await generateBaseExpert(username, {write: false});
   } else {
     // If not fresh, we can attempt to read the already framed expert data (faster)
-    expertNode = JSON.parse(await cache.readUserAsset(username, 'webapp/expert-base.jsonld'));
+    expertNode = JSON.parse(await cache.readUserAsset(username, webappExpertBaseKey()));
   }
   graph.addNode(expertNode);
 
@@ -146,7 +147,7 @@ async function generateExpert(username, opts={}) {
   if( opts.write ) {
     await cache.writeUserAsset(
       username,
-      'webapp/expert.jsonld',
+      webappExpertKey(),
       JSON.stringify(graph, null, 2)
     );
   }

@@ -5,7 +5,7 @@ import {getGraphAsItems, getNodeByType, asArray, SHORT_TYPES} from '../utils.js'
 import { getYearWeek } from '@ucd-lib/experts-commons';
 import { getRelates } from './relates.js';
 import { Graph } from './graph.js';
-import path from 'path';
+import { aeStdPersonKey, aeWebappWorkKey, privateMarkerKey } from '../../cache-paths.js';
 
 const TYPES = [
   ...SHORT_TYPES.WORKS, ...SHORT_TYPES.GRANTS
@@ -111,7 +111,7 @@ async function generateScholarlyWork(subject, opts={}) {
   if( opts.write ) {
     caskPath = await cache.writeScholarlyAsset(
       swType,
-      path.join('ae-webapp', subject+'.json'),
+      aeWebappWorkKey(subject),
       JSON.stringify(graph, null, 2)
     );
     caskPath = caskPath.assetPath;
@@ -162,7 +162,7 @@ async function _getScholarlyWorkExperts(baseWorkNode, opts={}) {
     let filepath = '';
     let cachedEmail = await cache.getUserIdLookup(expertId.split('/').pop());
     if( cachedEmail ) {
-      filepath = cache.getUserPath(cachedEmail, 'ae-std/person.jsonld');
+      filepath = cache.getUserPath(cachedEmail, aeStdPersonKey());
     // else use the RDF search to find the expert file based on expertId
     } else {
       logger.warn(`No cached email found for expertId ${expertId} in node.relatedBy.relates ${baseWorkNode['@id']}.  Attempting to find related expert via RDF search.`);
@@ -185,7 +185,7 @@ async function _getScholarlyWorkExperts(baseWorkNode, opts={}) {
     }
 
     // check if expert is private
-    let isPrivate = await cache.exists(cache.getUserPath(cachedEmail, 'PRIVATE'));
+    let isPrivate = await cache.exists(cache.getUserPath(cachedEmail, privateMarkerKey()));
     if( isPrivate ) {
       logger.warn(`Expert ${expertId} in node.relatedBy.relates ${baseWorkNode['@id']} is marked private.  Skipping.`);
       continue;

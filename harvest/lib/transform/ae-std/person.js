@@ -2,8 +2,9 @@ import jsonpath from 'jsonpath';
 import fs from 'fs';
 import md5 from 'md5';
 import cache from '../../cache.js';
-import { config, logger } from '@ucd-lib/experts-commons';
+import { logger } from '@ucd-lib/experts-commons';
 import path from 'path';
+import { aeStdPersonKey } from '../../cache-paths.js';
 
 import {getNodeByType, sortJsonArrayByIdAndKeys, SHORT_TYPES, asArray} from '../utils.js';
 
@@ -615,7 +616,7 @@ async function jsonLdToPerson(userCacheName, expertId, odrFile, cdlFiles, ucopVo
 
   await cache.writeUserAsset(
     userCacheName,
-    path.join(config.cache.aeStdFormatDir, 'person.jsonld'),
+    aeStdPersonKey(),
     result
   );
 

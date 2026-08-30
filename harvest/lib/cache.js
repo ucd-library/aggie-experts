@@ -5,6 +5,7 @@ import {
 } from '@ucd-lib/experts-commons';
 import CaskFS from '/opt/caskfs/src/index.js';
 import os from 'os';
+import { metadataKey, aeStdRelKey } from './cache-paths.js';
 
 class FsCache {
 
@@ -410,14 +411,14 @@ class FsCache {
   }
 
   async getExpertAeStdRelations(username, opts={}) {
-    let metadata = await this.readUserAsset(username, 'metadata.json', {date: opts.date});
+    let metadata = await this.readUserAsset(username, metadataKey(), {date: opts.date});
     metadata = JSON.parse(metadata);
 
-    const works = metadata.works.map(work => 
-      this.getUserPath(username, ['ae-std', 'rel', work.relationshipUri+'.jsonld'], {date: opts.date})
+    const works = metadata.works.map(work =>
+      this.getUserPath(username, aeStdRelKey(work.relationshipUri), {date: opts.date})
     );
-    const grants = metadata.grants.map(grant => 
-      this.getUserPath(username, ['ae-std', 'rel', grant.relationshipUri+'.jsonld'], {date: opts.date})
+    const grants = metadata.grants.map(grant =>
+      this.getUserPath(username, aeStdRelKey(grant.relationshipUri), {date: opts.date})
     );
     let files = [...works, ...grants];
 

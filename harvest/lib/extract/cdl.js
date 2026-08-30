@@ -13,6 +13,7 @@ import path from 'path';
 import { logger, GoogleSecret, config } from '@ucd-lib/experts-commons';
 import cache from '../cache.js';
 import xmlToJson from './xml-to-json.js';
+import { usersListFilename } from '../cache-paths.js';
 
 /**
  * Elements can return different XML envelopes depending on schema version.
@@ -387,7 +388,7 @@ export class CdlClient {
     }
 
     let cachePath = await cache.write(
-      path.join(cache.getPath(), `users-list-${groupName}.json`), 
+      path.join(cache.getPath(), usersListFilename(groupName)),
       {groupId: group, groupName, users}
     );
 

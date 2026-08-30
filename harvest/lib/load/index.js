@@ -3,6 +3,7 @@ import { logger, config, Elasticsearch } from '@ucd-lib/experts-commons';
 import { loadFiles as loadEs, getUsersCurrentScholarlyWorks } from './elastic-search/index.js';
 import { generateScholarlyWork } from '../transform/webapp/scholary-work.js';
 import { MivApi, SitefarmApi } from '../api/index.js';
+import { metadataKey, webappExpertKey, aeWebappWorkKey, aeStdPersonKey, aeStdRelKey } from '../cache-paths.js';
 
 // Module-level singletons. Both classes are stateless aside from the schema
 // name passed in the constructor, so a single instance is sufficient for the
@@ -20,7 +21,7 @@ async function run(user, alias) {
     alias = [alias]
   }
 
-  let metadata = JSON.parse(await cache.readUserAsset(user, 'metadata.json'));
+  let metadata = JSON.parse(await cache.readUserAsset(user, metadataKey()));
 
   // Insert load statistics on scholarly output into database if reporting is enabled
   if (config.reporting.enabled && config.postgres.client) {
@@ -191,7 +192,7 @@ async function reportValidationIssues(user, metadata={}) {
   // If it doesn't, we avoid writing noisy false positives.
   let expertDoc;
   try {
-    expertDoc = JSON.parse(await cache.readUserAsset(user, 'webapp/expert.jsonld'));
+    expertDoc = JSON.parse(await cache.readUserAsset(user, webappExpertKey()));
   } catch (e) {
     logger.warn(`Unable to read webapp/expert.jsonld for validation issue reporting for user ${user}. Skipping.`, { error: e.message });
     return;
@@ -335,19 +336,19 @@ async function purgeUser(expertId, alias='stage') {
 }
 
 async function getPublicScholarlyWorkFiles(user) {
-  const list = JSON.parse(await cache.readUserAsset(user, 'metadata.json'));
+  const list = JSON.parse(await cache.readUserAsset(user, metadataKey()));
 
   let results = [
     {
       type: 'expert',
-      path: cache.getUserPath(user, ['webapp', 'expert.jsonld'])
+      path: cache.getUserPath(user, webappExpertKey())
     },
     ...list.works.filter(work => work.privacy.value === true).map(work => {
       return {
         type: 'work',
         uri: work.uri,
         relationshipUri: work.relationshipUri,
-        path: cache.getScholarlyWorkPath('work', `${config.cache.aeWebappDir}/${work.uri}.json`)
+        path: cache.getScholarlyWorkPath('work', aeWebappWorkKey(work.uri))
       }
     }),
     ...list.grants.filter(grant => grant.privacy.value === true).map(grant => {
@@ -355,7 +356,7 @@ async function getPublicScholarlyWorkFiles(user) {
         type: 'grant',
         uri: grant.uri,
         relationshipUri: grant.relationshipUri,
-        path: cache.getScholarlyWorkPath('grant', `${config.cache.aeWebappDir}/${grant.uri}.json`)
+        path: cache.getScholarlyWorkPath('grant', aeWebappWorkKey(grant.uri))
       }
     })
   ]
@@ -375,7 +376,7 @@ async function getPublicScholarlyWorkFiles(user) {
 function getMivPostgresFiles(user, metadata={}) {
   const result = [{
     type: 'personAeStd',
-    path: cache.getUserPath(user, ['ae-std', 'person.jsonld'])
+    path: cache.getUserPath(user, aeStdPersonKey())
   }];
 
   for (const grant of (metadata.grants || [])) {
@@ -384,7 +385,7 @@ function getMivPostgresFiles(user, metadata={}) {
       type: 'grant',
       uri: grant.uri,
       relationshipUri: grant.relationshipUri,
-      path: cache.getUserPath(user, ['ae-std', 'rel', grant.relationshipUri+'.jsonld'])
+      path: cache.getUserPath(user, aeStdRelKey(grant.relationshipUri))
     });
   }
 
@@ -404,7 +405,7 @@ function getMivPostgresFiles(user, metadata={}) {
 function getSitefarmPostgresFiles(user, metadata={}) {
   const result = [{
     type: 'personAeStd',
-    path: cache.getUserPath(user, ['ae-std', 'person.jsonld'])
+    path: cache.getUserPath(user, aeStdPersonKey())
   }];
 
   for (const work of (metadata.works || [])) {
@@ -413,7 +414,7 @@ function getSitefarmPostgresFiles(user, metadata={}) {
       type: 'work',
       uri: work.uri,
       relationshipUri: work.relationshipUri,
-      path: cache.getUserPath(user, ['ae-std', 'rel', work.relationshipUri+'.jsonld'])
+      path: cache.getUserPath(user, aeStdRelKey(work.relationshipUri))
     });
   }
 
