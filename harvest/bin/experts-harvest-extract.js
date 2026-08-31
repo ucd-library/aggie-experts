@@ -65,7 +65,11 @@ program.command('run')
         await config.postgres.client.setUserPrivacy(user, false);
       }
     } else {
-      logger.info('Extraction complete for user', user, { 
+      // clear any stale iamExtractIssues.notFound metadata left over from a prior
+      // failed extraction attempt, so transform doesn't skip based on old state
+      await cache.deleteUserAsset(user, 'metadata.json');
+
+      logger.info('Extraction complete for user', user, {
         filesCount : [resp.iam, ...resp.cdl].length
       });
     }
