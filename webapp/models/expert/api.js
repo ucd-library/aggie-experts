@@ -6,7 +6,7 @@ const model = new ExpertModel();
 
 const { browse_endpoint, item_endpoint } = require('../middleware/index.js');
 const { json_only, user_can_edit, public_or_is_user } = require('../middleware/index.js');
-const { SlackNotifier, logger } = require('@ucd-lib/experts-commons');
+const { SlackNotifier, logger, config } = require('@ucd-lib/experts-commons');
 const DagsterAPI = require('../../lib/dagster-api.js');
 const dagsterAPI = new DagsterAPI();
 
@@ -45,7 +45,10 @@ router.post('/request-change',
       notes ? `Notes: ${notes}` : null
     ].filter(Boolean).join('\n');
 
-    const slackOpts = { title, message, severity: 'info', source: 'webapp' };
+    const slackOpts = {
+      title, message, severity: 'info', source: 'webapp',
+      mentions: config.slack.adminNotifyMentions
+    };
 
     // Try dagster first; fall back to direct Slack webhook if unavailable
     try {

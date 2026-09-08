@@ -152,6 +152,7 @@ program
     acc[key] = rest.join('=');
     return acc;
   }, {})
+  .option('--mentions <ids>', 'Comma-separated Slack member IDs to @mention', '')
   .action(async (opts) => {
     const sent = await SlackNotifier.send({
       title: opts.title,
@@ -159,6 +160,7 @@ program
       severity: opts.severity,
       source: opts.source,
       context: Object.keys(opts.context).length ? opts.context : null,
+      mentions: opts.mentions ? opts.mentions.split(',').map(s => s.trim()).filter(Boolean) : [],
     });
 
     if (!sent) {

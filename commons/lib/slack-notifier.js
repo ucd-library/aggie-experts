@@ -15,6 +15,7 @@ class SlackNotifier {
    * @param {string} opts.title - Message title
    * @param {string} opts.message - Message body
    * @param {object} opts.context - Optional key/value pairs shown as fields in the attachment
+   * @param {string[]} opts.mentions - Optional Slack member IDs (e.g. 'U012ABC3DEF') to @mention
    * @returns {Promise<boolean>} True if the message was sent
    */
   async send(opts = {}) {
@@ -24,6 +25,7 @@ class SlackNotifier {
       title = 'Notification',
       message = '',
       context = null,
+      mentions = [],
     } = opts;
 
     const webhookUrl = process.env.SLACK_WEBHOOK_URL;
@@ -36,6 +38,9 @@ class SlackNotifier {
       const color = this._getColorForSeverity(severity);
 
       let text = message;
+      if (mentions.length) {
+        text = `${mentions.map(id => `<@${id}>`).join(' ')}\n${text}`;
+      }
       if (context && typeof context === 'object') {
         const contextLines = Object.entries(context)
           .map(([key, value]) => `${key.replace(/_/g, ' ')}: ${value}`)
@@ -51,6 +56,9 @@ class SlackNotifier {
             text,
             footer: source,
             ts: Math.floor(Date.now() / 1000),
+            // Slack's legacy attachments render text as plain text by default;
+            // mrkdwn_in is required to parse `<@USERID>` into a live, notifying mention.
+            mrkdwn_in: ['text'],
           },
         ],
       };

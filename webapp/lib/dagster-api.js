@@ -419,16 +419,17 @@ class DagsterAPI {
    * @param {String} [opts.message] - Slack message body
    * @param {String} [opts.severity] - 'info', 'warning', or 'error'
    * @param {String} [opts.source] - source label shown in the notification
+   * @param {String[]} [opts.mentions] - Slack member IDs to @mention
    * @returns {Promise<Object>} Dagster launchRun GraphQL response
    */
   sendSlackNotification(opts = {}) {
-    const { title, message = '', severity = 'info', source = 'webapp' } = opts;
+    const { title, message = '', severity = 'info', source = 'webapp', mentions = [] } = opts;
     if( !title ) throw new Error('title is required');
 
     const runConfig = {
       ops: {
         send_slack_notification: {
-          config: { title, message, severity, source }
+          config: { title, message, severity, source, mentions }
         }
       }
     };
