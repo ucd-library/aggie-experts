@@ -15,10 +15,11 @@ program
   .description('clean the reporting database')
   .option('-u, --users <number>', 'number of weeks to keep in the database', parseInt)
   .option('-c, --commands <number>', 'number of weeks to keep in the database', parseInt)
+  .option('-r, --requests <number>', 'number of weeks of api_reporting.request_log rows to keep', parseInt)
   .option('--yes', 'Skip confirmation prompt')
   .action(async (options) => {
-    if (!options.users && !options.commands) {
-      console.error('Please specify at least one of --users or --commands with the number of weeks to keep.');
+    if (!options.users && !options.commands && !options.requests) {
+      console.error('Please specify at least one of --users, --commands, or --requests with the number of weeks to keep.');
       return;
     }
 
@@ -27,6 +28,9 @@ program
     }
     if( options.commands ) {
       console.log(`This will delete command entries older than ${options.commands} weeks.`);
+    }
+    if( options.requests ) {
+      console.log(`This will delete API request log entries older than ${options.requests} weeks.`);
     }
 
     if (!options.yes) {
@@ -48,7 +52,7 @@ program
       }
     }
 
-    let resp = await cleanup({users: options.users, commands: options.commands});
+    let resp = await cleanup({users: options.users, commands: options.commands, requests: options.requests});
     console.log('Cleanup response:', resp);
   });
 

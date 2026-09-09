@@ -33,3 +33,20 @@ CREATE TABLE IF NOT EXISTS api_reporting.request_log (
 -- Single index on the timestamp, per the lean-tracking requirement — this is
 -- the column every dashboard time-range filter will hit.
 CREATE INDEX IF NOT EXISTS idx_request_log_occurred_at ON api_reporting.request_log (occurred_at);
+
+-- ============================================================================
+-- Cleanup invoked from `experts harvest reporting clean` CLI call and Dagster 
+-- cleanup_job.
+-- ============================================================================
+CREATE OR REPLACE FUNCTION api_reporting.cleanup_old_request_log(p_weeks_to_keep INTEGER DEFAULT 8)
+RETURNS INTEGER AS $$
+DECLARE
+  cutoff_date          DATE := CURRENT_DATE - (p_weeks_to_keep * INTERVAL '7 days');
+  deleted_request_count INTEGER;
+BEGIN
+  DELETE FROM api_reporting.request_log
+  WHERE occurred_at::DATE < cutoff_date;
+  GET DIAGNOSTICS deleted_request_count = ROW_COUNT;
+  RETURN deleted_request_count;
+END;
+$$ LANGUAGE plpgsql;

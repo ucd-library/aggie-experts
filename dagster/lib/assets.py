@@ -583,9 +583,10 @@ def purge_dagster_runs(context: AssetExecutionContext) -> None:
     group_name="cleanup"
 )
 def purge_reporting_db(context: AssetExecutionContext) -> None:
-    """Purge commands more than 8 weeks old.  Purge users not seen for 6 months."""
+    """Purge commands more than 8 weeks old. Purge users not seen for 6 months.
+    Purge API request log entries more than 8 weeks old."""
     exec(
-        ["experts", "harvest", "reporting", "clean", "--commands", "8", "--users", "26", "--yes"],
+        ["experts", "harvest", "reporting", "clean", "--commands", "8", "--users", "26", "--requests", "8", "--yes"],
         no_json_parse=True
     )
     return None
