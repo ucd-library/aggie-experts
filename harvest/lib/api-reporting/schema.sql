@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS api_reporting.request_log (
   -- /12345/positions; NULL when the request is just /api/<root>
   path_rest   TEXT,
   ip_address  INET,
+  status_code SMALLINT,
+  latency_ms  INTEGER,
   occurred_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

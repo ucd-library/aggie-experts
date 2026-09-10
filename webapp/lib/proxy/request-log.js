@@ -18,12 +18,19 @@ module.exports = function requestLog() {
     const parsed = parseApiPath(req.path);
     if (parsed) {
       const ip = req.get('x-forwarded-for') || req.ip;
-      // Fire-and-forget: never block or fail the request over a logging write.
-      pool.query(
-        `INSERT INTO api_reporting.request_log (path_root, path_rest, ip_address) VALUES ($1, $2, $3)`,
-        [parsed.root, parsed.rest, ip]
-      ).catch(err => {
-        logger.error('Failed to record API request log', err.message);
+      const start = Date.now();
+
+      // Wait for the proxied response so we can record status/latency; 
+      // this never blocks or fails the request itself — the insert is
+      // fire-and-forget after the response has already gone out.
+      res.on('finish', () => {
+        pool.query(
+          `INSERT INTO api_reporting.request_log (path_root, path_rest, ip_address, status_code, latency_ms)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [parsed.root, parsed.rest, ip, res.statusCode, Date.now() - start]
+        ).catch(err => {
+          logger.error('Failed to record API request log', err.message);
+        });
       });
     }
     next();
