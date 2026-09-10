@@ -111,6 +111,7 @@ async function enableFromCli(command, user, options) {
  * @param {Object} opts
  * @param {number} opts.commands - Weeks to keep commands. Deletes older.
  * @param {number} opts.users    - Weeks to keep user entries. Deletes older.
+ * @param {number} opts.requests - Weeks to keep api_reporting.request_log rows. Deletes older.
  * @param {PgClient} opts.pgClient - Optional PgClient. New one created if absent.
  */
 async function cleanup(opts={}) {
@@ -134,6 +135,12 @@ async function cleanup(opts={}) {
   if (opts.users) {
     console.log('Cleaning up old user cache more than', opts.users, 'weeks old...');
     let resp = await pgClient.query(`SELECT * FROM etl_reporting.cleanup_old_users(${opts.users})`);
+    result = Object.assign(result, resp.rows[0]);
+  }
+
+  if (opts.requests) {
+    console.log('Cleaning up old API request log entries more than', opts.requests, 'weeks old...');
+    let resp = await pgClient.query(`SELECT * FROM api_reporting.cleanup_old_request_log(${opts.requests})`);
     result = Object.assign(result, resp.rows[0]);
   }
 
