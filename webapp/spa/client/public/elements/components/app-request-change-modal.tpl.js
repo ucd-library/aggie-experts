@@ -340,8 +340,7 @@ export default function render() {
             ` : this.dagsterDown ? html`
               <p>The Aggie Experts team has been notified and will make this change when the service is restored.</p>
             ` : html`
-              <p><strong>Your change is now live on your Aggie Experts profile.</strong></p>
-              <p>The team has been notified and will update the source data when the service is restored.</p>
+              <p>Recent changes are publicly visible immediately. Once service is restored, our team will manually update the system's data source to preserve your changes.</p>
             `}
           </div>
           <div class="footer-section">

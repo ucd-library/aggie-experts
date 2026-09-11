@@ -806,7 +806,10 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
                             const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
               this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Work could not be hidden', {
                 run: () => this.DagsterModel.forceUpdateCitationVisibility(this.expertId, this.citationId, false),
-                onSuccess: () => this._applyCitationVisibility(this.citationId, false)
+                onSuccess: () => {
+                  utils.markFailedUpdateForced(this.expertId, { type: 'work', name: citationText });
+                  this._applyCitationVisibility(this.citationId, false);
+                }
               });
               return;
             }
@@ -856,7 +859,10 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
                             const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
               this._showUpdateError('Work could not be rejected.', citationText, citationSubtext, 'Work could not be rejected', {
                 run: () => this.DagsterModel.forceRejectCitation(this.expertId, this.citationId),
-                onSuccess: () => this._refreshWorksList()
+                onSuccess: () => {
+                  utils.markFailedUpdateForced(this.expertId, { type: 'work', name: citationText });
+                  return this._refreshWorksList();
+                }
               });
               return;
             }

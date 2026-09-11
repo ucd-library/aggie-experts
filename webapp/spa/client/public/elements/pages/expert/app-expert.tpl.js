@@ -948,10 +948,11 @@ return html`
     </div>
 
     ${(() => {
+      const FORCED_NOTE = "Recent changes are publicly visible immediately. Once service is restored, our team will manually update the system's data source to preserve your changes.";
       const isInfoOnly = u => !u.cdlFailed && u.esFailed;
       const toListItems = entries => entries.map(u => ({
         label: u.name,
-        subtext: utils.FAILED_UPDATE_SHORT_LABELS[u.action] || u.action
+        subtext: (utils.FAILED_UPDATE_SHORT_LABELS[u.action] || u.action) + (u.forced ? ' ' + FORCED_NOTE : '')
       }));
 
       const groups = [

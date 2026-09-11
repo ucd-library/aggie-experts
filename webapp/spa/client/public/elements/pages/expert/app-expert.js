@@ -607,7 +607,10 @@ export default class AppExpert extends Mixin(LitElement)
             if( utils.hasCdlStepFailed(stepStats) ) {
               this._showUpdateError('Expert profile could not be updated.', '', 'Profile could not be removed', {
                 run: () => this.DagsterModel.forceDeleteExpert(this.expertId),
-                onSuccess: () => { window.location.replace('/auth/logout'); }
+                onSuccess: () => {
+                  utils.markFailedUpdateForced(this.expertId, { type: 'expert', name: '' });
+                  window.location.replace('/auth/logout');
+                }
               });
               return;
             }

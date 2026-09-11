@@ -491,7 +491,10 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
                             const { text: citationText, subtext: citationSubtext } = this._getGrantCitationData(this.grantId);
               this._showUpdateError('Grant visibility could not be updated.', citationText, citationSubtext, 'Grant could not be hidden', {
                 run: () => this.DagsterModel.forceUpdateGrantVisibility(this.expertId, this.grantId, false),
-                onSuccess: () => this._applyGrantVisibility(this.grantId, false)
+                onSuccess: () => {
+                  utils.markFailedUpdateForced(this.expertId, { type: 'grant', name: citationText });
+                  this._applyGrantVisibility(this.grantId, false);
+                }
               });
               return;
             }
