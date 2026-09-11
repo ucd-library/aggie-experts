@@ -614,9 +614,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
    * @param {String} citationText - grant name stored for the request-change form
    * @param {String} citationSubtext - secondary metadata line (dates, role, funder) for the request-change form
    * @param {String} changeType - pre-selected value for the request-change dropdown
-   * @param {String} [oapolicyUrl] - link to the UC Publication Management System
    */
-  _showUpdateError(errorMessage, citationText, citationSubtext, changeType, oapolicyUrl='https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=2&oa=&tol=&tids=&f=&rp=&vs=&nad=&rs=&efa=&sid=&y=&ipr=true&jda=&iqf=&id=&wt=') {
+  _showUpdateError(errorMessage, citationText, citationSubtext, changeType) {
     this.requestChangeCitation = citationText;
     this.requestChangeCitationSubtext = citationSubtext;
     this.requestChangeCitationLabel = 'Grant';
@@ -624,10 +623,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
 
     this.modalTitle = 'Update Failed';
     this.modalContent = `
-      <p>${errorMessage} Please try again later or make your changes directly in the
-        <a href="${oapolicyUrl}" target="_blank">UC Publication Management System (opens in new tab).</a>
-      </p>
-      <p>For more help, see <a href="/faq#visible-publication">troubleshooting tips</a>.</p>
+      <p>${errorMessage} Please try again later.</p>
       <p>For urgent changes, <a href="#" class="contact-link">contact us</a>.</p>
     `;
     this.showModal = true;

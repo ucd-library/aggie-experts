@@ -653,8 +653,7 @@ export default class AppExpert extends Mixin(LitElement)
             await utils.trackFailedUpdate(this.expertId, { type: 'availability', name: '', action: 'update-availability', stepStats });
             if( utils.hasCdlStepFailed(stepStats) ) {
               this.dispatchEvent(new CustomEvent("loaded", {}));
-              let elementsEditMode = APP_CONFIG.user.expertId === this.expertId ? '&em=true' : '';
-              this._showUpdateError('Availability settings could not be updated.', '', 'Availability settings could not be updated.', `https://oapolicy.universityofcalifornia.edu${this.elementsUserId.length > 0 ? '/userprofile.html?uid=' + this.elementsUserId + elementsEditMode : ''}`);
+              this._showUpdateError('Availability settings could not be updated.', '', 'Availability settings could not be updated.');
               return;
             }
             this.collabProjects = collabProjects;
@@ -677,8 +676,7 @@ export default class AppExpert extends Mixin(LitElement)
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
-        let elementsEditMode = APP_CONFIG.user.expertId === this.expertId ? '&em=true' : '';
-        this._showUpdateError('Availability settings could not be updated.', '', 'Availability settings could not be updated.', `https://oapolicy.universityofcalifornia.edu${this.elementsUserId.length > 0 ? '/userprofile.html?uid=' + this.elementsUserId + elementsEditMode : ''}`);
+        this._showUpdateError('Availability settings could not be updated.', '', 'Availability settings could not be updated.');
 
         if( window.gtag ) {
           gtag('event', 'expert_availability_change', {
@@ -701,18 +699,15 @@ export default class AppExpert extends Mixin(LitElement)
    * @param {String} errorMessage - sentence displayed in the modal body, e.g. "Availability settings could not be updated."
    * @param {String} citationText - text stored for the request-change form (not shown in this modal)
    * @param {String} changeType - pre-selected value for the request-change dropdown
-   * @param {String} [oapolicyUrl] - link to the UC Publication Management System
    */
-  _showUpdateError(errorMessage, citationText, changeType, oapolicyUrl='https://oapolicy.universityofcalifornia.edu/') {
+  _showUpdateError(errorMessage, citationText, changeType) {
     this.requestChangeCitation = citationText;
     this.requestChangeType = changeType;
 
     this.modalTitle = 'Update Failed';
     this.modalSaveText = '';
     this.modalContent = `
-      <p>${errorMessage} Please try again later or make your changes directly in the
-        <a href="${oapolicyUrl}" target="_blank">UC Publication Management System (opens in new tab).</a>
-      </p>
+      <p>${errorMessage} Please try again later.</p>
       <p>For urgent changes, <a href="#" class="contact-link">contact us</a>.</p>
     `;
     this.showModal = true;
@@ -1078,6 +1073,7 @@ export default class AppExpert extends Mixin(LitElement)
             this.lastUpdated = this.lastLastUpdated || '';
             this.logger.warn('Profile update dagster job run failed', { runId });
             this.refreshingProfileData = false;
+            this._showUpdateError('Your profile could not be refreshed.', '', 'Profile could not be refreshed.');
           }
         }
       } catch (err) {

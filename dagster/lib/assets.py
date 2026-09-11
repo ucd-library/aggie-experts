@@ -1,6 +1,7 @@
 """
 Dagster asset definitions for the Aggie Experts ETL pipeline.
 """
+import os
 import subprocess
 
 import dagster as dg
@@ -125,6 +126,9 @@ def reload_search_template(context, config: ReloadSearchTemplateConfig) -> None:
 )
 def fetch_user_list_from_cdl(context, config: FetchUserListConfig) -> None:
     """Get current user list from CDL and create dynamic partitions."""
+    if os.getenv("CDL_SERVICE_DOWN") == "true":
+        raise dg.Failure(description="CDL service is down; cannot fetch user list")
+
     result = exec(["experts", "harvest", "dagster", "init-user-partitions", config.group_id])
 
     context.add_output_metadata(
@@ -147,6 +151,10 @@ def fetch_user_list_from_cdl(context, config: FetchUserListConfig) -> None:
 def extract_user(context) -> None:
     """Extract user data from CDL and store in CaskFS."""
     user_id = context.partition_key
+
+    if os.getenv("CDL_SERVICE_DOWN") == "true":
+        raise dg.Failure(description=f"CDL service is down; cannot extract user {user_id}")
+
     run = context.dagster_run
 
     cmd = ["experts", "harvest", "extract", "run", user_id, "--reporting-job-id", run.run_id]
@@ -280,6 +288,9 @@ def update_scholarly_record_es(context: AssetExecutionContext, config: UpdateSch
 )
 def update_scholarly_record_cdl(context: AssetExecutionContext, config: UpdateScholarlyRecordCdlConfig) -> None:
     """Propagate a work or grant record update to CDL/Elements."""
+    if os.getenv("CDL_SERVICE_DOWN") == "true":
+        raise dg.Failure(description=f"CDL service is down; cannot update scholarly record for {config.expert_id}")
+
     if not config.cdl_enabled:
         context.log.info(f"Skipping CDL update for {config.expert_id} (CDL propagation disabled)")
         context.add_output_metadata(metadata={"expert_id": config.expert_id, "status": "skipped"})
@@ -341,6 +352,9 @@ def update_expert_es(context: AssetExecutionContext, config: UpdateExpertConfig)
 )
 def update_expert_cdl(context: AssetExecutionContext, config: UpdateExpertCdlConfig) -> None:
     """Propagate an expert record update to CDL/Elements."""
+    if os.getenv("CDL_SERVICE_DOWN") == "true":
+        raise dg.Failure(description=f"CDL service is down; cannot update expert {config.expert_id}")
+
     if not config.cdl_enabled:
         context.log.info(f"Skipping CDL update for {config.expert_id} (CDL propagation disabled)")
         context.add_output_metadata(metadata={"expert_id": config.expert_id, "status": "skipped"})
@@ -452,6 +466,9 @@ def update_expert_availability_es(context: AssetExecutionContext, config: Update
 )
 def update_expert_availability_cdl(context: AssetExecutionContext, config: UpdateExpertAvailabilityCdlConfig) -> None:
     """Propagate expert availability label updates to CDL/Elements."""
+    if os.getenv("CDL_SERVICE_DOWN") == "true":
+        raise dg.Failure(description=f"CDL service is down; cannot update availability for {config.expert_id}")
+
     if not config.cdl_enabled:
         context.log.info(f"Skipping CDL update for {config.expert_id} (CDL propagation disabled)")
         context.add_output_metadata(metadata={"expert_id": config.expert_id, "status": "skipped"})
