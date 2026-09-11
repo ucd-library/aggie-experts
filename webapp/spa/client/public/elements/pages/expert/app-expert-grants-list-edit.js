@@ -46,7 +46,8 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       requestChangeCitationLabel : { type : String },
       requestChangeType : { type : String },
       failedUpdates : { type : Array },
-      canEditDirectly : { type : Boolean }
+      canEditDirectly : { type : Boolean },
+      _forcingUpdate : { type : Boolean }
     }
   }
 
@@ -414,7 +415,6 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     this.grantId = e.currentTarget.dataset.id;
     this.dispatchEvent(new CustomEvent("loading", {}));
     this.updatingVisibility = true;
-    let updated = true;
     try {
       let res = await this.DagsterModel.updateGrantVisibility(this.expertId, this.grantId, true);
       utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
@@ -423,24 +423,13 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
           await utils.trackFailedUpdate(this.expertId, { type: 'grant', name: this._getGrantCitationData(this.grantId).text, action: 'show-grant', stepStats });
           this.failedUpdates = (await utils.getFailedUpdates(this.expertId)).filter(u => u.type === 'grant');
           if( utils.hasCdlStepFailed(stepStats) ) {
+            this.updatingVisibility = false;
             this.dispatchEvent(new CustomEvent("loaded", {}));
                         const { text: citationText, subtext: citationSubtext } = this._getGrantCitationData(this.grantId);
             this._showUpdateError('Grant visibility could not be updated.', citationText, citationSubtext, 'Grant visibility could not be updated.');
             return;
           }
-          let expert = await this.ExpertModel.get(
-            this.expertId,
-            `/5000?page=${this.currentPage}&size=${this.resultsPerPage}`,
-            utils.getExpertApiOptions({
-              includeWorks : false,
-              grantsPage : this.currentPage,
-              grantsSize : this.resultsPerPage,
-              includeHidden : true,
-              includeGrantsMisformatted : true
-            }),
-            true // clear cache
-          );
-          this._onExpertUpdate(expert);
+          this._applyGrantVisibility(this.grantId, true);
           this.dispatchEvent(new CustomEvent("loaded", {}));
           let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
           if( toastPopup ) toastPopup.showPopup('Showing on Profile');
@@ -459,7 +448,6 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
     } catch (error) {
       this.dispatchEvent(new CustomEvent("loaded", {}));
 
-      updated = false;
             const { text: citationText, subtext: citationSubtext } = this._getGrantCitationData(this.grantId);
       this._showUpdateError('Grant visibility could not be updated.', citationText, citationSubtext, 'Grant visibility could not be updated.');
 
@@ -473,25 +461,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
       }
       this.logger.error('failed to set grant to be visible', { grantId : this.grantId, expertId : this.expertId });
       this.updatingVisibility = false;
-      return;
     }
-
-    this.modifiedGrants = true;
-
-    // update graph/display data
-    let grant = this.grants.filter(g => g.relationshipId === this.grantId)[0];
-    if( grant ) grant.isVisible = true;
-    grant = this.grantsActiveDisplayed.filter(g => g.relationshipId === this.grantId)[0];
-    if( grant ) grant.isVisible = true;
-    grant = this.grantsCompletedDisplayed.filter(g => g.relationshipId === this.grantId)[0];
-    if( grant ) grant.isVisible = true;
-
-    if( updated && this.hiddenGrants >= 0 ) this.hiddenGrants -= 1;
-    if( updated ) this.modifiedGrants = true;
-    this._updateManageGrantsLabel();
-    this.updatingVisibility = false;
-
-    this.requestUpdate();
   }
 
   /**
@@ -505,7 +475,6 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
 
     this.showModal = false;
     let action = e.currentTarget.title.trim() === 'Hide Grant' ? 'hide' : '';
-    let updated = true;
 
     if( action === 'hide' ) {
       this.updatingVisibility = true;
@@ -517,24 +486,16 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
             await utils.trackFailedUpdate(this.expertId, { type: 'grant', name: this._getGrantCitationData(this.grantId).text, action: 'hide-grant', stepStats });
           this.failedUpdates = (await utils.getFailedUpdates(this.expertId)).filter(u => u.type === 'grant');
             if( utils.hasCdlStepFailed(stepStats) ) {
+              this.updatingVisibility = false;
               this.dispatchEvent(new CustomEvent("loaded", {}));
                             const { text: citationText, subtext: citationSubtext } = this._getGrantCitationData(this.grantId);
-              this._showUpdateError('Grant visibility could not be updated.', citationText, citationSubtext, 'Grant visibility could not be updated.');
+              this._showUpdateError('Grant visibility could not be updated.', citationText, citationSubtext, 'Grant could not be hidden', {
+                run: () => this.DagsterModel.forceUpdateGrantVisibility(this.expertId, this.grantId, false),
+                onSuccess: () => this._applyGrantVisibility(this.grantId, false)
+              });
               return;
             }
-            let expert = await this.ExpertModel.get(
-              this.expertId,
-              `/grants-edit?page=${this.currentPage}&size=${this.resultsPerPage}`,
-              utils.getExpertApiOptions({
-                includeWorks : false,
-                grantsPage : this.currentPage,
-                grantsSize : this.resultsPerPage,
-                includeHidden : true,
-                includeGrantsMisformatted : true
-              }),
-              true // clear cache
-            );
-            this._onExpertUpdate(expert);
+            this._applyGrantVisibility(this.grantId, false);
             this.dispatchEvent(new CustomEvent("loaded", {}));
             let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
             if( toastPopup ) toastPopup.showPopup('Hidden from Profile');
@@ -552,10 +513,10 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
         this.logger.info('setting grant to be hidden', { grantId : this.grantId, expertId : this.expertId });
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
-        updated = false;
+        this.updatingVisibility = false;
 
                 const { text: citationText, subtext: citationSubtext } = this._getGrantCitationData(this.grantId);
-        this._showUpdateError('Grant visibility could not be updated.', citationText, citationSubtext, 'Grant visibility could not be updated.');
+        this._showUpdateError('Grant visibility could not be updated.', citationText, citationSubtext, 'Grant could not be hidden');
 
         if( window.gtag ) {
           gtag('event', 'grant_is_visible', {
@@ -567,21 +528,6 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
         }
         this.logger.error('failed to set grant to be hidden', { grantId : this.grantId, expertId : this.expertId });
       }
-
-      // update graph/display data
-      let grant = this.grants.filter(g => g.relationshipId === this.grantId)[0];
-      if( grant ) grant.isVisible = false;
-      grant = this.grantsActiveDisplayed.filter(g => g.relationshipId === this.grantId)[0];
-      if( grant ) grant.isVisible = false;
-      grant = this.grantsCompletedDisplayed.filter(g => g.relationshipId === this.grantId)[0];
-      if( grant ) grant.isVisible = false;
-
-      if( updated ) this.hiddenGrants += 1;
-      if( updated ) this.modifiedGrants = true;
-      this._updateManageGrantsLabel();
-      this.updatingVisibility = false;
-
-      this.requestUpdate();
     }
   }
 
@@ -606,25 +552,60 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
   }
 
   /**
+   * @method _applyGrantVisibility
+   * @description directly update a grant's visibility across every tracked local array
+   * (grants, grantsActiveDisplayed, grantsCompletedDisplayed) and adjust derived counts
+   * and labels, without a server refetch. Used for both the normal success path and a
+   * forced (CDL-bypass) update's success path. Avoids relying on `_onExpertUpdate`'s
+   * `updatingVisibility` guard, which races against its own async model-update event
+   * across the multiple async boundaries these flows go through.
+   *
+   * @param {String} grantId - relationshipId of the grant
+   * @param {Boolean} visible - true if visible
+   */
+  _applyGrantVisibility(grantId, visible) {
+    let grant = this.grants.filter(g => g.relationshipId === grantId)[0];
+    if( grant ) grant.isVisible = visible;
+    grant = this.grantsActiveDisplayed.filter(g => g.relationshipId === grantId)[0];
+    if( grant ) grant.isVisible = visible;
+    grant = this.grantsCompletedDisplayed.filter(g => g.relationshipId === grantId)[0];
+    if( grant ) grant.isVisible = visible;
+
+    if( visible && this.hiddenGrants >= 0 ) this.hiddenGrants -= 1;
+    else if( !visible ) this.hiddenGrants += 1;
+    this.modifiedGrants = true;
+    this._updateManageGrantsLabel();
+    this.updatingVisibility = false;
+
+    this.requestUpdate();
+  }
+
+  /**
    * @method _showUpdateError
-   * @description show an error modal with a contact-us link.
+   * @description show an error modal. Only includes a contact-us link (and captures a
+   * forceAction to replay) when forceAction is provided; otherwise the update simply
+   * cannot be completed while CDL is down, with no bypass offered.
    * Stores citation context for the request-change modal.
    *
    * @param {String} errorMessage - sentence displayed in the modal body, e.g. "Grant visibility could not be updated."
    * @param {String} citationText - grant name stored for the request-change form
    * @param {String} citationSubtext - secondary metadata line (dates, role, funder) for the request-change form
    * @param {String} changeType - pre-selected value for the request-change dropdown
+   * @param {Object} [forceAction] - action to replay via the CDL-bypass force job if the user clicks "contact us"
+   * @param {Function} forceAction.run - launches the force job, returns the launchRun response
+   * @param {Function} forceAction.onSuccess - applies local state once the force job succeeds
    */
-  _showUpdateError(errorMessage, citationText, citationSubtext, changeType) {
+  _showUpdateError(errorMessage, citationText, citationSubtext, changeType, forceAction=null) {
     this.requestChangeCitation = citationText;
     this.requestChangeCitationSubtext = citationSubtext;
     this.requestChangeCitationLabel = 'Grant';
     this.requestChangeType = changeType;
+    this._pendingForceAction = forceAction;
 
     this.modalTitle = 'Update Failed';
     this.modalContent = `
       <p>${errorMessage} Please try again later.</p>
-      <p>For urgent changes, <a href="#" class="contact-link">contact us</a>.</p>
+      ${forceAction ? '<p>For urgent changes, <a href="#" class="contact-link">contact us</a>.</p>' : ''}
     `;
     this.showModal = true;
     this.hideCancel = true;
@@ -636,12 +617,36 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
 
   /**
    * @method _onRequestChange
-   * @description handle request-change event from the error modal; close the error
-   * modal and open the request-change form with the stored context.
+   * @description handle request-change event from the error modal: immediately replay
+   * the failed action via the CDL-bypass force job (if one was captured), then open the
+   * request-change form with the stored context so the user can still notify staff.
    */
-  _onRequestChange() {
+  async _onRequestChange() {
     this.showModal = false;
+    const action = this._pendingForceAction;
+    this._pendingForceAction = null;
     this.showRequestChangeModal = true;
+
+    if( !action || this._forcingUpdate ) return;
+
+    this._forcingUpdate = true;
+    try {
+      let res = await action.run();
+      utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
+        label: 'forced update (bypass CDL)',
+        onComplete: async (status) => {
+          this._forcingUpdate = false;
+          if( status === 'SUCCESS' ) {
+            await action.onSuccess?.();
+          } else {
+            this.logger.warn('forced update job failed', { status });
+          }
+        }
+      });
+    } catch (err) {
+      this._forcingUpdate = false;
+      this.logger.error('forced update failed to launch', err);
+    }
   }
 
   /**

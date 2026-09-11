@@ -81,7 +81,7 @@ class DagsterService extends BaseService {
     });
   }
 
-  async updateCitationVisibility(id, citationId, visible) {
+  async updateCitationVisibility(id, citationId, visible, opts = {}) {
     return this.request({
       url : `${this.adminUpdatesUrl}/scholarly-record`,
       fetchOptions : {
@@ -93,7 +93,8 @@ class DagsterService extends BaseService {
           expertId : id,
           relationshipId : citationId,
           type : 'work',
-          visibility : visible ? 'yes' : 'no'
+          visibility : visible ? 'yes' : 'no',
+          ...(opts.force && { force: true })
         })
       },
       checkCached : () => null,
@@ -103,7 +104,7 @@ class DagsterService extends BaseService {
     });
   }
 
-  async rejectCitation(id, citationId) {
+  async rejectCitation(id, citationId, opts = {}) {
     return this.request({
       url : `${this.adminUpdatesUrl}/scholarly-record`,
       fetchOptions : {
@@ -115,7 +116,8 @@ class DagsterService extends BaseService {
           expertId : id,
           relationshipId : citationId,
           type : 'work',
-          reject : 'yes'
+          reject : 'yes',
+          ...(opts.force && { force: true })
         })
       },
       checkCached : () => null,
@@ -147,7 +149,7 @@ class DagsterService extends BaseService {
     });
   }
 
-  async updateGrantVisibility(id, grantId, visible) {
+  async updateGrantVisibility(id, grantId, visible, opts = {}) {
     return this.request({
       url : `${this.adminUpdatesUrl}/scholarly-record`,
       fetchOptions : {
@@ -159,7 +161,8 @@ class DagsterService extends BaseService {
           expertId : id,
           relationshipId : grantId,
           type : 'grant',
-          visibility : visible ? 'yes' : 'no'
+          visibility : visible ? 'yes' : 'no',
+          ...(opts.force && { force: true })
         })
       },
       checkCached : () => null,
@@ -189,7 +192,7 @@ class DagsterService extends BaseService {
     });
   }
 
-  async deleteExpert(id) {
+  async deleteExpert(id, opts = {}) {
     return this.request({
       url : `${this.adminUpdatesUrl}/expert`,
       fetchOptions : {
@@ -199,7 +202,8 @@ class DagsterService extends BaseService {
         },
         body : JSON.stringify({
           expertId : id,
-          delete : 'yes'
+          delete : 'yes',
+          ...(opts.force && { force: true })
         })
       },
       checkCached : () => null,

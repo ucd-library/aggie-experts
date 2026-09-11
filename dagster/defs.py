@@ -60,6 +60,8 @@ from lib.jobs import (
     update_scholarly_record_job,
     update_expert_job,
     update_expert_availability_job,
+    force_update_scholarly_record_job,
+    force_update_expert_job,
 )
 from lib.sensors import etl_notify_and_continue, admin_update_failure_sensor
 from lib.schedules import (
@@ -73,6 +75,7 @@ defs = dg.Definitions(
     jobs=[
         etl_users_job, extract_users_job, transform_load_users_job, start_weekly_etl_job, post_etl_job, cleanup_job,
         update_scholarly_record_job, update_expert_job, update_expert_availability_job,
+        force_update_scholarly_record_job, force_update_expert_job,
     ],
     assets=[
         extract_user, transform_user_webapp, transform_user_standard,

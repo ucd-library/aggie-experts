@@ -255,6 +255,7 @@ def exec_weekly_etl(context: AssetExecutionContext, config: NotifyConfig) -> Non
 @dg.asset(
     code_version=CODE_VERSION,
     group_name="admin",
+    deps=["update_scholarly_record_cdl"],
 )
 def update_scholarly_record_es(context: AssetExecutionContext, config: UpdateScholarlyRecordConfig) -> None:
     """Update a work or grant record in Elasticsearch."""
@@ -323,6 +324,7 @@ def update_scholarly_record_cdl(context: AssetExecutionContext, config: UpdateSc
 @dg.asset(
     code_version=CODE_VERSION,
     group_name="admin",
+    deps=["update_expert_cdl"],
 )
 def update_expert_es(context: AssetExecutionContext, config: UpdateExpertConfig) -> None:
     """Update or delete an expert record in Elasticsearch."""
@@ -383,6 +385,7 @@ def update_expert_cdl(context: AssetExecutionContext, config: UpdateExpertCdlCon
 @dg.asset(
     code_version=CODE_VERSION,
     group_name="admin",
+    deps=["update_scholarly_record_cdl"],
 )
 def update_scholarly_record_postgres(context: AssetExecutionContext, config: UpdateScholarlyRecordPgConfig) -> None:
     """Update a work or grant record visibility in Postgres."""
@@ -414,6 +417,7 @@ def update_scholarly_record_postgres(context: AssetExecutionContext, config: Upd
 @dg.asset(
     code_version=CODE_VERSION,
     group_name="admin",
+    deps=["update_expert_cdl"],
 )
 def update_expert_postgres(context: AssetExecutionContext, config: UpdateExpertPgConfig) -> None:
     """Update expert visibility in Postgres."""
@@ -438,6 +442,7 @@ def update_expert_postgres(context: AssetExecutionContext, config: UpdateExpertP
 @dg.asset(
     code_version=CODE_VERSION,
     group_name="admin",
+    deps=["update_expert_availability_cdl"],
 )
 def update_expert_availability_es(context: AssetExecutionContext, config: UpdateExpertAvailabilityConfig) -> None:
     """Update expert availability labels in Elasticsearch."""

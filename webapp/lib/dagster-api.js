@@ -88,8 +88,8 @@ class DagsterAPI {
   /**
    * @method runUpdateScholarlyRecord
    * @description Launch a single Dagster job that updates a work or grant record in
-   * both Elasticsearch (update_scholarly_record_es step) and CDL/Elements
-   * (update_scholarly_record_cdl step) in parallel.
+   * CDL/Elements (update_scholarly_record_cdl step), then Elasticsearch and Postgres
+   * (which are skipped if the CDL step fails).
    *
    * @param {String} expertId
    * @param {String} relationshipId
@@ -99,13 +99,13 @@ class DagsterAPI {
    * @param {String} opts.favorite - 'yes' or 'no'
    * @param {String} opts.reject - 'yes' or 'no'
    * @param {String} opts.cdl - 'yes' or 'no'; controls cdl_enabled on the CDL step
+   * @param {Boolean} opts.force - bypass CDL/Elements entirely; only update Elasticsearch and Postgres
    * @returns {Promise<Object>} Dagster launchRun GraphQL response
    */
   async runUpdateScholarlyRecord(expertId, relationshipId, opts = {}) {
     if (!expertId) throw new Error('expertId is required');
     if (!relationshipId) throw new Error('relationshipId is required');
 
-    const cdlEnabled = opts.cdl !== 'no';
     const sharedConfig = {
       expert_id: expertId,
       relationship_id: relationshipId,
@@ -115,6 +115,17 @@ class DagsterAPI {
       ...(opts.reject && { reject: opts.reject }),
     };
 
+    if (opts.force) {
+      const runConfig = {
+        ops: {
+          update_scholarly_record_es: { config: sharedConfig },
+          update_scholarly_record_postgres: { config: sharedConfig },
+        },
+      };
+      return this.launchRun('force_update_scholarly_record_job', JSON.stringify(runConfig));
+    }
+
+    const cdlEnabled = opts.cdl !== 'no';
     const runConfig = {
       ops: {
         update_scholarly_record_es: { config: sharedConfig },
@@ -129,20 +140,20 @@ class DagsterAPI {
   /**
    * @method runUpdateExpert
    * @description Launch a single Dagster job that updates or deletes an expert record in
-   * both Elasticsearch (update_expert_es step) and CDL/Elements (update_expert_cdl step)
-   * in parallel.
+   * CDL/Elements (update_expert_cdl step), then Elasticsearch and Postgres (which are
+   * skipped if the CDL step fails).
    *
    * @param {String} expertId
    * @param {Object} opts
    * @param {String} opts.visibility - 'yes' or 'no'
    * @param {String} opts.delete - 'yes' or 'no'
    * @param {String} opts.cdl - 'yes' or 'no'; controls cdl_enabled on the CDL step
+   * @param {Boolean} opts.force - bypass CDL/Elements entirely; only update Elasticsearch and Postgres
    * @returns {Promise<Object>} Dagster launchRun GraphQL response
    */
   async runUpdateExpert(expertId, opts = {}) {
     if (!expertId) throw new Error('expertId is required');
 
-    const cdlEnabled = opts.cdl !== 'no';
     const esAndCdlConfig = {
       expert_id: expertId,
       ...(opts.visibility && { visibility: opts.visibility }),
@@ -154,6 +165,17 @@ class DagsterAPI {
       ...(opts.visibility && { visibility: opts.visibility }),
     };
 
+    if (opts.force) {
+      const runConfig = {
+        ops: {
+          update_expert_es: { config: esAndCdlConfig },
+          update_expert_postgres: { config: pgConfig },
+        },
+      };
+      return this.launchRun('force_update_expert_job', JSON.stringify(runConfig));
+    }
+
+    const cdlEnabled = opts.cdl !== 'no';
     const runConfig = {
       ops: {
         update_expert_es: { config: esAndCdlConfig },
@@ -168,8 +190,8 @@ class DagsterAPI {
   /**
    * @method runUpdateExpertAvailability
    * @description Launch a single Dagster job that updates expert availability labels in
-   * both Elasticsearch (update_expert_availability_es step) and CDL/Elements
-   * (update_expert_availability_cdl step) in parallel.
+   * CDL/Elements (update_expert_availability_cdl step), then Elasticsearch (which is
+   * skipped if the CDL step fails). No force/bypass path exists for this action.
    *
    * @param {String} expertId
    * @param {Object} labels
@@ -183,7 +205,6 @@ class DagsterAPI {
   async runUpdateExpertAvailability(expertId, labels = {}, opts = {}) {
     if (!expertId) throw new Error('expertId is required');
 
-    const cdlEnabled = opts.cdl !== 'no';
     const sharedConfig = {
       expert_id: expertId,
       labels_to_add: labels.labelsToAddOrEdit || [],
@@ -191,6 +212,7 @@ class DagsterAPI {
       current_labels: labels.currentLabels || [],
     };
 
+    const cdlEnabled = opts.cdl !== 'no';
     const runConfig = {
       ops: {
         update_expert_availability_es: { config: sharedConfig },

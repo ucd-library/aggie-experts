@@ -6,12 +6,10 @@ import layoutCss from '@ucd-lib/theme-sass/5_layout/_index.css';
 import '@ucd-lib/theme-elements/brand/ucd-theme-slim-select/ucd-theme-slim-select.js';
 
 const CHANGE_TYPE_OPTIONS = [
-  'Work visibility could not be updated.',
-  'Work could not be rejected.',
-  'Work could not be added to highlights.',
-  'Work could not be removed from highlights.',
-  'Grant visibility could not be updated.',
-  'Availability settings could not be updated.'
+  'Work could not be hidden',
+  'Work could not be rejected',
+  'Grant could not be hidden',
+  'Profile could not be removed'
 ];
 
 const DAGSTER_DOWN_CHANGE_TYPE_OPTIONS = [

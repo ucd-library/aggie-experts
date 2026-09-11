@@ -70,7 +70,8 @@ export default class AppExpert extends Mixin(LitElement)
       lastUpdated : { type : String },
       refreshingProfileData : { type : Boolean },
       dagsterHealthy : { type : Boolean },
-      failedUpdates : { type : Array }
+      failedUpdates : { type : Array },
+      _forcingUpdate : { type : Boolean }
     }
   }
 
@@ -560,21 +561,30 @@ export default class AppExpert extends Mixin(LitElement)
       this.dispatchEvent(new CustomEvent("loading", {}));
       try {
         let res = await this.DagsterModel.updateExpertVisibility(this.expertId, false);
-        utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), { label: 'expert visibility (hide)' });
-        this.dispatchEvent(new CustomEvent("loaded", {}));
-        this.isVisible = false;
+        utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
+          label: 'expert visibility (hide)',
+          onComplete: async (status, stepStats) => {
+            await utils.trackFailedUpdate(this.expertId, { type: 'expert', name: '', action: 'hide-expert', stepStats });
+            this.dispatchEvent(new CustomEvent("loaded", {}));
+            if( utils.hasCdlStepFailed(stepStats) ) {
+              this._showUpdateError('Expert visibility could not be updated.', '', 'Expert visibility could not be updated.');
+              return;
+            }
+            this.isVisible = false;
 
-        if( window.gtag ) {
-          gtag('event', 'expert_is_visible', {
-            'description': 'expert ' + this.expertId + ' hidden',
-            'expertId': this.expertId,
-            'fatal': false
-          });
-        }
-        this.logger.info('expert hidden', { expertId : this.expertId });
+            if( window.gtag ) {
+              gtag('event', 'expert_is_visible', {
+                'description': 'expert ' + this.expertId + ' hidden',
+                'expertId': this.expertId,
+                'fatal': false
+              });
+            }
+            this.logger.info('expert hidden', { expertId : this.expertId });
+          }
+        });
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
-        this._showUpdateError('Expert visibility could not be updated.', '', 'Availability settings could not be updated.');
+        this._showUpdateError('Expert visibility could not be updated.', '', 'Expert visibility could not be updated.');
 
         if( window.gtag ) {
           gtag('event', 'expert_is_visible', {
@@ -589,24 +599,35 @@ export default class AppExpert extends Mixin(LitElement)
       this.dispatchEvent(new CustomEvent("loading", {}));
       try {
         let res = await this.DagsterModel.deleteExpert(this.expertId);
-        utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), { label: 'expert delete' });
-        this.dispatchEvent(new CustomEvent("loaded", {}));
+        utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
+          label: 'expert delete',
+          onComplete: async (status, stepStats) => {
+            await utils.trackFailedUpdate(this.expertId, { type: 'expert', name: '', action: 'delete-expert', stepStats });
+            this.dispatchEvent(new CustomEvent("loaded", {}));
+            if( utils.hasCdlStepFailed(stepStats) ) {
+              this._showUpdateError('Expert profile could not be updated.', '', 'Profile could not be removed', {
+                run: () => this.DagsterModel.forceDeleteExpert(this.expertId),
+                onSuccess: () => { window.location.replace('/auth/logout'); }
+              });
+              return;
+            }
 
-        if( window.gtag ) {
-          gtag('event', 'expert_delete', {
-            'description': 'expert ' + this.expertId + ' deleted',
-            'expertId': this.expertId,
-            'fatal': false
-          });
-        }
-        this.logger.info('expert deleted', { expertId : this.expertId });
+            if( window.gtag ) {
+              gtag('event', 'expert_delete', {
+                'description': 'expert ' + this.expertId + ' deleted',
+                'expertId': this.expertId,
+                'fatal': false
+              });
+            }
+            this.logger.info('expert deleted', { expertId : this.expertId });
 
-        // logout/redirect to home page after deleting expert
-        // this.AppStateModel.setLocation('/auth/logout');
-        window.location.replace('/auth/logout');
+            // logout/redirect to home page after deleting expert
+            window.location.replace('/auth/logout');
+          }
+        });
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
-        this._showUpdateError('Expert profile could not be updated.', '', 'Availability settings could not be updated.');
+        this._showUpdateError('Expert profile could not be updated.', '', 'Profile could not be removed');
 
         if( window.gtag ) {
           gtag('event', 'expert_delete', {
@@ -693,22 +714,28 @@ export default class AppExpert extends Mixin(LitElement)
 
   /**
    * @method _showUpdateError
-   * @description show an error modal with a contact-us link.
+   * @description show an error modal. Only includes a contact-us link (and captures a
+   * forceAction to replay) when forceAction is provided; otherwise the update simply
+   * cannot be completed while CDL is down, with no bypass offered.
    * Stores citation context for the request-change modal.
    *
    * @param {String} errorMessage - sentence displayed in the modal body, e.g. "Availability settings could not be updated."
    * @param {String} citationText - text stored for the request-change form (not shown in this modal)
    * @param {String} changeType - pre-selected value for the request-change dropdown
+   * @param {Object} [forceAction] - action to replay via the CDL-bypass force job if the user clicks "contact us"
+   * @param {Function} forceAction.run - launches the force job, returns the launchRun response
+   * @param {Function} forceAction.onSuccess - applies local state once the force job succeeds
    */
-  _showUpdateError(errorMessage, citationText, changeType) {
+  _showUpdateError(errorMessage, citationText, changeType, forceAction=null) {
     this.requestChangeCitation = citationText;
     this.requestChangeType = changeType;
+    this._pendingForceAction = forceAction;
 
     this.modalTitle = 'Update Failed';
     this.modalSaveText = '';
     this.modalContent = `
       <p>${errorMessage} Please try again later.</p>
-      <p>For urgent changes, <a href="#" class="contact-link">contact us</a>.</p>
+      ${forceAction ? '<p>For urgent changes, <a href="#" class="contact-link">contact us</a>.</p>' : ''}
     `;
     this.showModal = true;
     this.hideCancel = true;
@@ -720,12 +747,36 @@ export default class AppExpert extends Mixin(LitElement)
 
   /**
    * @method _onRequestChange
-   * @description handle request-change event from the error modal; close the error
-   * modal and open the request-change form.
+   * @description handle request-change event from the error modal: immediately replay
+   * the failed action via the CDL-bypass force job (if one was captured), then open the
+   * request-change form so the user can still notify staff.
    */
-  _onRequestChange() {
+  async _onRequestChange() {
     this.showModal = false;
+    const action = this._pendingForceAction;
+    this._pendingForceAction = null;
     this.showRequestChangeModal = true;
+
+    if( !action || this._forcingUpdate ) return;
+
+    this._forcingUpdate = true;
+    try {
+      let res = await action.run();
+      utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
+        label: 'forced update (bypass CDL)',
+        onComplete: async (status) => {
+          this._forcingUpdate = false;
+          if( status === 'SUCCESS' ) {
+            await action.onSuccess?.();
+          } else {
+            this.logger.warn('forced update job failed', { status });
+          }
+        }
+      });
+    } catch (err) {
+      this._forcingUpdate = false;
+      this.logger.error('forced update failed to launch', err);
+    }
   }
 
   /**
@@ -764,21 +815,30 @@ export default class AppExpert extends Mixin(LitElement)
       this.dispatchEvent(new CustomEvent("loading", {}));
       try {
         let res = await this.DagsterModel.updateExpertVisibility(this.expertId, true);
-        utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), { label: 'expert visibility (show)' });
-        this.dispatchEvent(new CustomEvent("loaded", {}));
-        this.isVisible = true;
+        utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
+          label: 'expert visibility (show)',
+          onComplete: async (status, stepStats) => {
+            await utils.trackFailedUpdate(this.expertId, { type: 'expert', name: '', action: 'show-expert', stepStats });
+            this.dispatchEvent(new CustomEvent("loaded", {}));
+            if( utils.hasCdlStepFailed(stepStats) ) {
+              this._showUpdateError('Expert visibility could not be updated.', '', 'Expert visibility could not be updated.');
+              return;
+            }
+            this.isVisible = true;
 
-        if( window.gtag ) {
-          gtag('event', 'expert_is_visible', {
-            'description': 'expert ' + this.expertId + ' shown',
-            'expertId': this.expertId,
-            'fatal': false
-          });
-        }
-        this.logger.info('expert visibility set to true', { expertId : this.expertId });
+            if( window.gtag ) {
+              gtag('event', 'expert_is_visible', {
+                'description': 'expert ' + this.expertId + ' shown',
+                'expertId': this.expertId,
+                'fatal': false
+              });
+            }
+            this.logger.info('expert visibility set to true', { expertId : this.expertId });
+          }
+        });
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
-        this._showUpdateError('Expert visibility could not be updated.', '', 'Availability settings could not be updated.');
+        this._showUpdateError('Expert visibility could not be updated.', '', 'Expert visibility could not be updated.');
 
         if( window.gtag ) {
           gtag('event', 'expert_is_visible', {
@@ -1041,7 +1101,7 @@ export default class AppExpert extends Mixin(LitElement)
     let runId = res.body?.data?.launchRun?.run?.runId || '';
     if( runId ) {
       this.lastLastUpdated = this.lastUpdated;
-      this.lastUpdated = 'Updating...';
+      this.lastUpdated = 'Refreshing... usually takes about a minute';
       this._startProfileSyncInterval(runId);
     }
   }
