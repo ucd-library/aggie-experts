@@ -379,15 +379,22 @@ export default function render() {
               </div>
             ` : ''}
 
-            <div class="field">
-              <label>What do you need changed? <span class="required">*</span></label>
-              <select .value="${this.changeType}" @change="${this._onChangeTypeInput}">
-                <option value="" ?selected="${!this.changeType}" disabled>Select a change type</option>
-                ${(this.dagsterDown ? DAGSTER_DOWN_CHANGE_TYPE_OPTIONS : CHANGE_TYPE_OPTIONS).map(opt => html`
-                  <option value="${opt}" ?selected="${this.changeType === opt}">${opt}</option>
-                `)}
-              </select>
-            </div>
+            ${this.forceAction ? html`
+              <div class="field">
+                <label>Change request</label>
+                <div class="autofill-value">${this.changeType}</div>
+              </div>
+            ` : html`
+              <div class="field">
+                <label>What do you need changed? <span class="required">*</span></label>
+                <select .value="${this.changeType}" @change="${this._onChangeTypeInput}">
+                  <option value="" ?selected="${!this.changeType}" disabled>Select a change type</option>
+                  ${(this.dagsterDown ? DAGSTER_DOWN_CHANGE_TYPE_OPTIONS : CHANGE_TYPE_OPTIONS).map(opt => html`
+                    <option value="${opt}" ?selected="${this.changeType === opt}">${opt}</option>
+                  `)}
+                </select>
+              </div>
+            `}
 
             ${this.dagsterDown && this.changeType.toLowerCase().includes('availability') ? html`
               <div class="field">

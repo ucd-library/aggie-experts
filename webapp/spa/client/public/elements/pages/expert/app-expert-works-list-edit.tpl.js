@@ -320,7 +320,8 @@ return html`
       .itemSubtext="${this.requestChangeCitationSubtext}"
       .itemLabel="${this.requestChangeCitationLabel}"
       .changeType="${this.requestChangeType}"
-      @cancel=${(e) => this.showRequestChangeModal = false}>
+      .forceAction="${this._pendingForceAction}"
+      @cancel=${(e) => { this.showRequestChangeModal = false; this._pendingForceAction = null; }}>
     </app-request-change-modal>
     <div class="hero-main site-frame">
       <div class="hero-text">

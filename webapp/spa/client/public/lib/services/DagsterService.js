@@ -48,7 +48,7 @@ class DagsterService extends BaseService {
     });
   }
 
-  async getLastRunForPartition(jobName, partitionName) {
+  async getLastRunForPartition(jobName, partitionName, opts = {}) {
     return this.request({
       url : `${this.baseUrl}/last-runs-for-partition`,
       fetchOptions : {
@@ -56,7 +56,11 @@ class DagsterService extends BaseService {
         headers : {
           'Content-Type' : 'application/json'
         },
-        body : JSON.stringify({ partition: partitionName, jobName })
+        body : JSON.stringify({
+          partition: partitionName,
+          jobName,
+          ...(opts.statuses && { statuses: opts.statuses })
+        })
       },
       checkCached : () => null,
       onLoading : null,

@@ -46,12 +46,12 @@ router.post('/last-runs-for-partition',
   dagster_can_run_partition(),
   async (req, res, next) => {
   try {
-    const { jobName, partition, limit = 3 } = req.body;
+    const { jobName, partition, limit = 3, statuses } = req.body;
     if (!jobName || !partition) {
       return res.status(400).json({ error: 'jobName and partition are required' });
     }
 
-    const result = await dagsterAPI.getLastRunsForPartition(jobName, partition, parseInt(limit, 10));
+    const result = await dagsterAPI.getLastRunsForPartition(jobName, partition, parseInt(limit, 10), statuses);
     res.json(result);
   } catch (error) {
     logger.error('Error fetching last runs for partition', error);

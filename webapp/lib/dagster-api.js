@@ -369,7 +369,21 @@ class DagsterAPI {
     return this.graphqlQuery('GetRunStatus', query, { runId });
   }
 
-  async getLastRunsForPartition(jobName, partitionName, limit = 3) {
+  /**
+   * @method getLastRunsForPartition
+   * @description Fetch the most recent Dagster runs for a job/partition, most recent first.
+   * Filtering by `statuses` happens server-side (in the GraphQL query itself), so `limit`
+   * applies to the matching runs, not to all runs before filtering — this matters when
+   * callers only care about e.g. successful runs, since recent failures would otherwise
+   * push an older success out of a client-side-filtered result window.
+   *
+   * @param {String} jobName - Dagster job name
+   * @param {String} partitionName - Dagster partition name
+   * @param {Number} [limit=3] - max number of matching runs to return
+   * @param {Array<String>} [statuses] - optional DagsterRunStatus values to filter to (e.g. ['SUCCESS'])
+   * @returns {Promise<Object>} Dagster runsOrError GraphQL response
+   */
+  async getLastRunsForPartition(jobName, partitionName, limit = 3, statuses = null) {
     if (!jobName) throw new Error('jobName is required');
     if (!partitionName) throw new Error('partitionName is required');
 
@@ -419,7 +433,8 @@ class DagsterAPI {
       pipelineName: jobName,
       tags: [
         { key: "dagster/partition", value: partitionName }
-      ]
+      ],
+      ...(statuses && statuses.length && { statuses })
     };
 
     return this.graphqlQuery('GetLastRunsForPartition', query, {

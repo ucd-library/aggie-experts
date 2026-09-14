@@ -39,15 +39,19 @@ class DagsterModel extends BaseModel {
 
   /**
    * @method getLastRunForPartition
-   * @description get last run for dagster job partition
+   * @description get last run(s) for dagster job partition
    *
    * @param {String} jobName dagster job name
    * @param {String} partitionName dagster partition name (cas)
+   * @param {Object} opts
+   * @param {Array<String>} [opts.statuses] - optional DagsterRunStatus values to filter to
+   *   server-side (e.g. ['SUCCESS']), so a run matching the filter isn't pushed out of the
+   *   result window by more recent non-matching runs
    *
    * @returns {Promise} resolves to record
   */
-  async getLastRunForPartition(jobName, partitionName) {
-    return await this.service.getLastRunForPartition(jobName, partitionName);
+  async getLastRunForPartition(jobName, partitionName, opts = {}) {
+    return await this.service.getLastRunForPartition(jobName, partitionName, opts);
   }
 
   /**

@@ -51,8 +51,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       requestChangeCitationSubtext : { type : String },
       requestChangeCitationLabel : { type : String },
       requestChangeType : { type : String },
-      failedUpdates : { type : Array },
-      _forcingUpdate : { type : Boolean }
+      failedUpdates : { type : Array }
     }
   }
 
@@ -1090,36 +1089,13 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
   /**
    * @method _onRequestChange
-   * @description handle request-change event from the error modal: immediately replay
-   * the failed action via the CDL-bypass force job (if one was captured), then open the
-   * request-change form with the stored context so the user can still notify staff.
+   * @description handle request-change event from the error modal: close the error modal
+   * and open the request-change form, which holds the captured force action (if any) and
+   * only replays it when the user actually submits the form.
    */
-  async _onRequestChange() {
+  _onRequestChange() {
     this.showModal = false;
-    const action = this._pendingForceAction;
-    this._pendingForceAction = null;
     this.showRequestChangeModal = true;
-
-    if( !action || this._forcingUpdate ) return;
-
-    this._forcingUpdate = true;
-    try {
-      let res = await action.run();
-      utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
-        label: 'forced update (bypass CDL)',
-        onComplete: async (status) => {
-          this._forcingUpdate = false;
-          if( status === 'SUCCESS' ) {
-            await action.onSuccess?.();
-          } else {
-            this.logger.warn('forced update job failed', { status });
-          }
-        }
-      });
-    } catch (err) {
-      this._forcingUpdate = false;
-      this.logger.error('forced update failed to launch', err);
-    }
   }
 
   /**

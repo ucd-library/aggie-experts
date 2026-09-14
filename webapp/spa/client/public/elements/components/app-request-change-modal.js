@@ -23,6 +23,16 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
       itemSubtext: { type: String },
       itemLabel: { type: String },
       changeType: { type: String },
+      /**
+       * @property {Object} forceAction - when set (an unplanned CDL-outage failure with a
+       * captured replay action), submitting this form runs forceAction.run() (the
+       * CDL-bypass job for the specific item that failed), polls it to completion, and
+       * on success calls forceAction.onSuccess() to update the underlying page. Distinct
+       * from cdlDown/dagsterDown, which are for the proactive "known outage" banner flow
+       * and use a generic item picker instead of a specific captured action.
+       * Shape: { run: () => Promise, onSuccess: () => void|Promise }
+       */
+      forceAction: { type: Object },
       searchQuery: { type: String },
       searchLabel: { type: String },
       searchItems: { type: Array },
@@ -57,6 +67,7 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
     this.itemSubtext = '';
     this.itemLabel = 'Item';
     this.changeType = '';
+    this.forceAction = null;
     this.searchQuery = '';
     this.searchLabel = '';
     this.searchItems = [];
@@ -225,8 +236,11 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
 
   /**
    * @method _onSubmit
-   * @description submit the change request; in cdlDown mode applies the change directly
-   * and waits for the dagster ES job to complete before advancing to the success screen
+   * @description submit the change request; in forceAction mode (an unplanned CDL-outage
+   * failure) applies the captured replay action for the specific item that failed; in
+   * cdlDown mode (the proactive "known outage" banner) applies a generically-selected
+   * change; both wait for the dagster ES job to complete before advancing to the success
+   * screen
    */
   async _onSubmit() {
     this.submitting = true;
@@ -235,7 +249,31 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
     try {
       const citation = this._buildCitation();
 
-      if( this.cdlDown ) {
+      if( this.forceAction ) {
+        this.submitting = false;
+        this.applying = true;
+
+        const dagsterRes = await this.forceAction.run();
+
+        // Send the slack notification immediately (fire and forget)
+        this.ExpertModel.requestChange({
+          name: this.userName,
+          email: this.userEmail,
+          citation,
+          changeType: this.changeType,
+          notes: this.additionalNotes
+        }).catch(() => {});
+
+        const status = await this._pollUntilComplete(dagsterRes);
+        this.applying = false;
+
+        if( status !== 'SUCCESS' ) {
+          this.submitError = true;
+          return;
+        }
+
+        await this.forceAction.onSuccess?.();
+      } else if( this.cdlDown ) {
         let dagsterRes;
         if( this._isAvailability() ) {
           dagsterRes = await this._applyAvailabilityChange();
