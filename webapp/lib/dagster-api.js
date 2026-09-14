@@ -191,7 +191,8 @@ class DagsterAPI {
    * @method runUpdateExpertAvailability
    * @description Launch a single Dagster job that updates expert availability labels in
    * CDL/Elements (update_expert_availability_cdl step), then Elasticsearch (which is
-   * skipped if the CDL step fails). No force/bypass path exists for this action.
+   * skipped if the CDL step fails). Pass opts.force to bypass CDL/Elements entirely and
+   * update only Elasticsearch.
    *
    * @param {String} expertId
    * @param {Object} labels
@@ -200,6 +201,7 @@ class DagsterAPI {
    * @param {Array} labels.currentLabels
    * @param {Object} opts
    * @param {String} opts.cdl - 'yes' or 'no'; controls cdl_enabled on the CDL step
+   * @param {Boolean} opts.force - bypass CDL/Elements entirely; only update Elasticsearch
    * @returns {Promise<Object>} Dagster launchRun GraphQL response
    */
   async runUpdateExpertAvailability(expertId, labels = {}, opts = {}) {
@@ -211,6 +213,15 @@ class DagsterAPI {
       labels_to_remove: labels.labelsToRemove || [],
       current_labels: labels.currentLabels || [],
     };
+
+    if (opts.force) {
+      const runConfig = {
+        ops: {
+          update_expert_availability_es: { config: sharedConfig },
+        },
+      };
+      return this.launchRun('force_update_expert_availability_job', JSON.stringify(runConfig));
+    }
 
     const cdlEnabled = opts.cdl !== 'no';
     const runConfig = {

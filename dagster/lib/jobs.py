@@ -101,6 +101,13 @@ force_update_expert_job = dg.define_asset_job(
     tags={"dagster/priority": "2"},
 )
 
+force_update_expert_availability_job = dg.define_asset_job(
+    name="force_update_expert_availability_job",
+    description="Force-update expert availability labels in Elasticsearch only, bypassing CDL/Elements.",
+    selection=dg.AssetSelection.assets(update_expert_availability_es),
+    tags={"dagster/priority": "2"},
+)
+
 
 post_etl_job = dg.define_asset_job(
     name="post_etl_job",

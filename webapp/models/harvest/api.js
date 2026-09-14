@@ -150,12 +150,6 @@ router.post('/admin-update/scholarly-record',
     if (!expertId || !relationshipId) {
       return res.status(400).json({ error: 'expertId and relationshipId are required' });
     }
-    // force (bypass CDL) is only supported for hiding or rejecting a record, never for
-    // showing it or changing its favorite/highlight status
-    const isForceEligible = visibility === 'no' || reject === 'yes';
-    if (force === true && !isForceEligible) {
-      return res.status(400).json({ error: 'force is only supported when hiding or rejecting a record' });
-    }
 
     const result = await dagsterAPI.runUpdateScholarlyRecord(expertId, relationshipId, {
       type, elasticsearch, cdl, visibility, favorite, reject, force: force === true
@@ -178,10 +172,6 @@ router.post('/admin-update/expert',
     if (!expertId) {
       return res.status(400).json({ error: 'expertId is required' });
     }
-    // force (bypass CDL) is only supported for deleting a profile, never for hiding or showing it
-    if (force === true && del !== 'yes') {
-      return res.status(400).json({ error: 'force is only supported when deleting a profile' });
-    }
 
     const result = await dagsterAPI.runUpdateExpert(expertId, {
       elasticsearch, cdl, visibility, delete: del, force: force === true
@@ -199,7 +189,7 @@ router.post('/admin-update/availability',
   dagster_can_run_partition({requirePartition: false}),
   async (req, res, next) => {
   try {
-    const { expertId, elasticsearch, labelsToAddOrEdit, labelsToRemove, currentLabels } = req.body;
+    const { expertId, elasticsearch, labelsToAddOrEdit, labelsToRemove, currentLabels, force } = req.body;
     let cdl = config.experts.propogateCdlChanges === true ? 'yes' : 'no';
     if (!expertId) {
       return res.status(400).json({ error: 'expertId is required' });
@@ -207,7 +197,7 @@ router.post('/admin-update/availability',
 
     const result = await dagsterAPI.runUpdateExpertAvailability(expertId, {
       labelsToAddOrEdit, labelsToRemove, currentLabels
-    }, { elasticsearch, cdl });
+    }, { elasticsearch, cdl, force: force === true });
     res.json(result);
   } catch (error) {
     logger.error('Error running admin-update availability', error);

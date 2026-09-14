@@ -293,8 +293,13 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
         // Poll dagster until the ES step reaches a terminal state, then show success
         this.submitting = false;
         this.applying = true;
-        await this._pollUntilComplete(dagsterRes);
+        const status = await this._pollUntilComplete(dagsterRes);
         this.applying = false;
+
+        if( status !== 'SUCCESS' ) {
+          this.submitError = true;
+          return;
+        }
       } else {
         await this.ExpertModel.requestChange({
           name: this.userName,
@@ -338,7 +343,9 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
           const status = statusRes?.body?.data?.runOrError?.status;
           if( terminalStates.includes(status) ) {
             clearInterval(intervalId);
-            // CDL is known-down so CDL step failures are expected — always resolve
+            // Resolve with whatever terminal status was reached; callers are responsible
+            // for treating non-SUCCESS as an error (both the forceAction and cdlDown
+            // branches in _onSubmit do this).
             resolve(status);
           }
         } catch(err) {
@@ -380,7 +387,8 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
 
   /**
    * @method _applyAvailabilityChange
-   * @description in cdlDown mode, call DagsterModel.updateExpertAvailability with the checked options
+   * @description in cdlDown mode, force-apply the checked availability options directly to
+   * Elasticsearch, bypassing CDL/Elements (which is known to be down)
    */
   async _applyAvailabilityChange() {
     const openTo = {
@@ -396,12 +404,14 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
       mediaInterviews: !this.mediaInterviews
     };
     const labels = utils.buildAvailabilityPayload(openTo, prevOpenTo);
-    return this.DagsterModel.updateExpertAvailability(this.expertId, labels);
+    return this.DagsterModel.forceUpdateExpertAvailability(this.expertId, labels);
   }
 
   /**
    * @method _applyChange
-   * @description in cdlDown mode, call the appropriate DagsterModel method to apply the change
+   * @description in cdlDown mode, call the appropriate DagsterModel force method to
+   * apply the change directly to Elasticsearch, bypassing CDL/Elements (which is known
+   * to be down)
    *
    * @returns {Promise<Object>} dagster response containing the runId
    */
@@ -410,19 +420,19 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
     const id = this.selectedItem?.id;
 
     if( v.includes('hide a work') && id ) {
-      return this.DagsterModel.updateCitationVisibility(this.expertId, id, false);
+      return this.DagsterModel.forceUpdateCitationVisibility(this.expertId, id, false);
     } else if( v.includes('show a work') && id ) {
-      return this.DagsterModel.updateCitationVisibility(this.expertId, id, true);
+      return this.DagsterModel.forceUpdateCitationVisibility(this.expertId, id, true);
     } else if( v.includes('hide a grant') && id ) {
-      return this.DagsterModel.updateGrantVisibility(this.expertId, id, false);
+      return this.DagsterModel.forceUpdateGrantVisibility(this.expertId, id, false);
     } else if( v.includes('show a grant') && id ) {
-      return this.DagsterModel.updateGrantVisibility(this.expertId, id, true);
+      return this.DagsterModel.forceUpdateGrantVisibility(this.expertId, id, true);
     } else if( v.includes('hide my profile') ) {
-      return this.DagsterModel.updateExpertVisibility(this.expertId, false);
+      return this.DagsterModel.forceUpdateExpertVisibility(this.expertId, false);
     } else if( v.includes('show my profile') ) {
-      return this.DagsterModel.updateExpertVisibility(this.expertId, true);
+      return this.DagsterModel.forceUpdateExpertVisibility(this.expertId, true);
     } else if( v.includes('remove my profile') ) {
-      return this.DagsterModel.deleteExpert(this.expertId);
+      return this.DagsterModel.forceDeleteExpert(this.expertId);
     }
   }
 
