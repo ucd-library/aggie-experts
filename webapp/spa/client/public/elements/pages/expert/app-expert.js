@@ -669,14 +669,22 @@ export default class AppExpert extends Mixin(LitElement)
         };
         let labels = utils.buildAvailabilityPayload(openTo, prevOpenTo);
 
+        let selectedAvailabilityLabels = [];
+        if( collabProjects ) selectedAvailabilityLabels.push('Collaborative Projects');
+        if( commPartner ) selectedAvailabilityLabels.push('Community Partnerships');
+        if( industProjects ) selectedAvailabilityLabels.push('Industry Projects');
+        if( mediaInterviews ) selectedAvailabilityLabels.push('Media Interviews');
+        let availabilityName = selectedAvailabilityLabels.join(', ') || 'Availability';
+
         let res = await this.DagsterModel.updateExpertAvailability(this.expertId, labels);
         utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
           label: 'expert availability',
           onComplete: async (status, stepStats) => {
-            await utils.trackFailedUpdate(this.expertId, { type: 'availability', name: '', action: 'update-availability', stepStats });
+            await utils.trackFailedUpdate(this.expertId, { type: 'availability', name: availabilityName, action: 'update-availability', stepStats });
+            this.failedUpdates = await utils.getFailedUpdates(this.expertId);
             if( utils.hasCdlStepFailed(stepStats) ) {
               this.dispatchEvent(new CustomEvent("loaded", {}));
-              this._showUpdateError('Availability settings could not be updated.', '', 'Availability settings could not be updated.');
+              this._showUpdateError('Availability settings could not be updated.', availabilityName, 'Availability settings could not be updated.');
               return;
             }
             this.collabProjects = collabProjects;
