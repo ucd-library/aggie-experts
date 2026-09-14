@@ -948,7 +948,7 @@ return html`
     </div>
 
     ${(() => {
-      const FORCED_NOTE = "Recent changes are publicly visible immediately. Once service is restored, our team will manually update the system's data source to preserve your changes.";
+      const FORCED_NOTE = "The Aggie Experts team has been notified and will make this change when the service is restored. We'll let you know when the update is complete.";
       const isInfoOnly = u => !u.cdlFailed && u.esFailed;
       const toListItems = entries => entries.map(u => ({
         label: u.name,

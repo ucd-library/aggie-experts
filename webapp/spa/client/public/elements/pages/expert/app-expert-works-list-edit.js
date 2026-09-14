@@ -804,7 +804,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
             if( utils.hasCdlStepFailed(stepStats) ) {
               this.dispatchEvent(new CustomEvent("loaded", {}));
                             const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
-              this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Work could not be hidden', {
+              this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Hide a work from my profile', {
                 run: () => this.DagsterModel.forceUpdateCitationVisibility(this.expertId, this.citationId, false),
                 onSuccess: () => {
                   utils.markFailedUpdateForced(this.expertId, { type: 'work', name: citationText });
@@ -833,7 +833,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
                 const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
-        this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Work could not be hidden');
+        this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Hide a work from my profile');
 
         if( window.gtag ) {
           gtag('event', 'citation_is_visible', {
@@ -857,7 +857,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
             if( utils.hasCdlStepFailed(stepStats) ) {
               this.dispatchEvent(new CustomEvent("loaded", {}));
                             const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
-              this._showUpdateError('Work could not be rejected.', citationText, citationSubtext, 'Work could not be rejected', {
+              this._showUpdateError('Work could not be rejected.', citationText, citationSubtext, 'Reject a work from my profile', {
                 run: () => this.DagsterModel.forceRejectCitation(this.expertId, this.citationId),
                 onSuccess: () => {
                   utils.markFailedUpdateForced(this.expertId, { type: 'work', name: citationText });
@@ -887,7 +887,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
                 const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
-        this._showUpdateError('Work could not be rejected.', citationText, citationSubtext, 'Work could not be rejected');
+        this._showUpdateError('Work could not be rejected.', citationText, citationSubtext, 'Reject a work from my profile');
 
         if( window.gtag ) {
           gtag('event', 'citation_reject', {

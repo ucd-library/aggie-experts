@@ -6,10 +6,10 @@ import layoutCss from '@ucd-lib/theme-sass/5_layout/_index.css';
 import '@ucd-lib/theme-elements/brand/ucd-theme-slim-select/ucd-theme-slim-select.js';
 
 const CHANGE_TYPE_OPTIONS = [
-  'Work could not be hidden',
-  'Work could not be rejected',
-  'Grant could not be hidden',
-  'Profile could not be removed'
+  'Hide a work from my profile',
+  'Reject a work from my profile',
+  'Hide a grant from my profile',
+  'Remove my profile from Aggie Experts'
 ];
 
 const DAGSTER_DOWN_CHANGE_TYPE_OPTIONS = [
@@ -313,6 +313,12 @@ export default function render() {
         border-left: none;
         transform: rotate(45deg);
       }
+
+      .btn--primary,
+      .btn--invert {
+        font-size: 1rem;
+      }
+
     </style>
 
     ${!this.visible ? '' : html`

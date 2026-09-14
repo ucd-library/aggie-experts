@@ -605,7 +605,7 @@ export default class AppExpert extends Mixin(LitElement)
             await utils.trackFailedUpdate(this.expertId, { type: 'expert', name: '', action: 'delete-expert', stepStats });
             this.dispatchEvent(new CustomEvent("loaded", {}));
             if( utils.hasCdlStepFailed(stepStats) ) {
-              this._showUpdateError('Expert profile could not be updated.', '', 'Profile could not be removed', {
+              this._showUpdateError('Expert profile could not be updated.', '', 'Remove my profile from Aggie Experts', {
                 run: () => this.DagsterModel.forceDeleteExpert(this.expertId),
                 onSuccess: () => {
                   utils.markFailedUpdateForced(this.expertId, { type: 'expert', name: '' });
@@ -630,7 +630,7 @@ export default class AppExpert extends Mixin(LitElement)
         });
       } catch (error) {
         this.dispatchEvent(new CustomEvent("loaded", {}));
-        this._showUpdateError('Expert profile could not be updated.', '', 'Profile could not be removed');
+        this._showUpdateError('Expert profile could not be updated.', '', 'Remove my profile from Aggie Experts');
 
         if( window.gtag ) {
           gtag('event', 'expert_delete', {

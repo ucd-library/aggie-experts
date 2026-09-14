@@ -489,7 +489,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
               this.updatingVisibility = false;
               this.dispatchEvent(new CustomEvent("loaded", {}));
                             const { text: citationText, subtext: citationSubtext } = this._getGrantCitationData(this.grantId);
-              this._showUpdateError('Grant visibility could not be updated.', citationText, citationSubtext, 'Grant could not be hidden', {
+              this._showUpdateError('Grant visibility could not be updated.', citationText, citationSubtext, 'Hide a grant from my profile', {
                 run: () => this.DagsterModel.forceUpdateGrantVisibility(this.expertId, this.grantId, false),
                 onSuccess: () => {
                   utils.markFailedUpdateForced(this.expertId, { type: 'grant', name: citationText });
@@ -519,7 +519,7 @@ export default class AppExpertGrantsListEdit extends Mixin(LitElement)
         this.updatingVisibility = false;
 
                 const { text: citationText, subtext: citationSubtext } = this._getGrantCitationData(this.grantId);
-        this._showUpdateError('Grant visibility could not be updated.', citationText, citationSubtext, 'Grant could not be hidden');
+        this._showUpdateError('Grant visibility could not be updated.', citationText, citationSubtext, 'Hide a grant from my profile');
 
         if( window.gtag ) {
           gtag('event', 'grant_is_visible', {
