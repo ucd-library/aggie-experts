@@ -110,6 +110,7 @@ class SlackNotifyConfig(Config):
     message: str = Field('', description="Message body")
     severity: str = Field('info', description="Severity level: info, warning, or error")
     source: str = Field('dagster', description="Source label shown in the notification")
+    mentions: list[str] = Field(default_factory=list, description="Slack member IDs to @mention")
 
 
 class PurgeStaleUserPartitionsConfig(Config):

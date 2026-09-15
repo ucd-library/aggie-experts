@@ -589,22 +589,10 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
           if( utils.hasCdlStepFailed(stepStats) ) {
             this.dispatchEvent(new CustomEvent("loaded", {}));
                         const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
-            this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Work visibility could not be updated.', 'visible-publication');
+            this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Work visibility could not be updated.');
             return;
           }
-          let expert = await this.ExpertModel.get(
-            this.expertId,
-            `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`,
-            utils.getExpertApiOptions({
-              includeGrants: false,
-              worksPage: this.currentPage,
-              worksSize: this.resultsPerPage,
-              includeHidden: true,
-              includeWorksMisformatted: true
-            }),
-            true // clear cache
-          );
-          this._onExpertUpdate(expert);
+          this._applyCitationVisibility(this.citationId, true);
           this.dispatchEvent(new CustomEvent("loaded", {}));
           let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
           if( toastPopup ) toastPopup.showPopup('Showing on Profile');
@@ -624,7 +612,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       this.dispatchEvent(new CustomEvent("loaded", {}));
 
             const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
-      this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Work visibility could not be updated.', 'visible-publication');
+      this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Work visibility could not be updated.');
 
       if( window.gtag ) {
         gtag('event', 'citation_is_visible', {
@@ -638,36 +626,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
       return;
     }
-
-    // update graph/display data
-    let citation = this.citationsDisplayed.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
-    if( citation ) {
-      citation.relatedBy[0]['is-visible'] = true;
-      citation['is-visible'] = true;
-    }
-    citation = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
-    if( citation ) {
-      citation.relatedBy[0]['is-visible'] = true;
-      citation['is-visible'] = true;
-    }
-    citation = (this.expert['@graph'] || []).filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
-    if( citation ) {
-      citation.relatedBy[0]['is-visible'] = true;
-      citation['is-visible'] = true;
-    }
-    citation = this.featuredCitations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
-    if( citation ) {
-      citation.relatedBy[0]['is-visible'] = true;
-      citation['is-visible'] = true;
-      this.featuredCitations = JSON.parse(JSON.stringify(this.featuredCitations));
-      this._updateMaxCitationsIndex();
-    }
-
-    this.hiddenCitations--;
-    this._updateHeaderLabels();
-
-    this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
-    this.requestUpdate();
   }
 
   /**
@@ -688,22 +646,10 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
           if( utils.hasCdlStepFailed(stepStats) ) {
             this.dispatchEvent(new CustomEvent("loaded", {}));
                         const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
-            this._showUpdateError('Work could not be removed from highlights.', citationText, citationSubtext, 'Work could not be removed from highlights.', 'visible-publication');
+            this._showUpdateError('Work could not be removed from highlights.', citationText, citationSubtext, 'Work could not be removed from highlights.');
             return;
           }
-          let expert = await this.ExpertModel.get(
-            this.expertId,
-            `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`,
-            utils.getExpertApiOptions({
-              includeGrants: false,
-              worksPage: this.currentPage,
-              worksSize: this.resultsPerPage,
-              includeHidden: true,
-              includeWorksMisformatted: true
-            }),
-            true // clear cache
-          );
-          this._onExpertUpdate(expert);
+          this._applyCitationFavourite(this.citationId, false);
           this.dispatchEvent(new CustomEvent("loaded", {}));
           let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
           if( toastPopup ) toastPopup.showPopup('Removed from Highlights');
@@ -723,7 +669,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       this.dispatchEvent(new CustomEvent("loaded", {}));
 
             const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
-      this._showUpdateError('Work could not be removed from highlights.', citationText, citationSubtext, 'Work could not be removed from highlights.', 'visible-publication');
+      this._showUpdateError('Work could not be removed from highlights.', citationText, citationSubtext, 'Work could not be removed from highlights.');
 
       if( window.gtag ) {
         gtag('event', 'citation_is_favourite', {
@@ -737,40 +683,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
       return;
     }
-
-    // update graph/display data
-    let citation = this.citationsDisplayed.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
-    if( citation ) {
-      citation.relatedBy[0]['ucdlib:favourite'] = false;
-      citation.favourite = false;
-    }
-    citation = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
-    if( citation ) {
-      citation.relatedBy[0]['ucdlib:favourite'] = false;
-      citation.favourite = false;
-    }
-    citation = (this.expert['@graph'] || []).filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
-    if( citation ) {
-      citation.relatedBy[0]['ucdlib:favourite'] = false;
-      citation.favourite = false;
-    }
-    citation = this.featuredCitations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
-    if( citation ) {
-      citation.relatedBy[0]['ucdlib:favourite'] = false;
-      citation.favourite = false;
-
-      // update featured citations list
-      this.featuredCitations = this.featuredCitations.filter(c => c.relatedBy?.[0]?.['@id'] !== this.citationId);
-
-      this._reSortCitations();
-    }
-
-    this._updateMaxCitationsIndex();
-
-    this._updateHeaderLabels();
-
-    this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
-    this.requestUpdate();
   }
 
   /**
@@ -791,22 +703,10 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
           if( utils.hasCdlStepFailed(stepStats) ) {
             this.dispatchEvent(new CustomEvent("loaded", {}));
                         const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
-            this._showUpdateError('Work could not be added to highlights.', citationText, citationSubtext, 'Work could not be added to highlights.', 'visible-publication');
+            this._showUpdateError('Work could not be added to highlights.', citationText, citationSubtext, 'Work could not be added to highlights.');
             return;
           }
-          let expert = await this.ExpertModel.get(
-            this.expertId,
-            `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`,
-            utils.getExpertApiOptions({
-              includeGrants: false,
-              worksPage: this.currentPage,
-              worksSize: this.resultsPerPage,
-              includeHidden: true,
-              includeWorksMisformatted: true
-            }),
-            true // clear cache
-          );
-          this._onExpertUpdate(expert);
+          this._applyCitationFavourite(this.citationId, true);
           this.dispatchEvent(new CustomEvent("loaded", {}));
           let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
           if( toastPopup ) toastPopup.showPopup('Added to Highlights');
@@ -826,7 +726,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       this.dispatchEvent(new CustomEvent("loaded", {}));
 
             const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
-      this._showUpdateError('Work could not be added to highlights.', citationText, citationSubtext, 'Work could not be added to highlights.', 'visible-publication');
+      this._showUpdateError('Work could not be added to highlights.', citationText, citationSubtext, 'Work could not be added to highlights.');
 
       if( window.gtag ) {
         gtag('event', 'citation_is_favourite', {
@@ -840,38 +740,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
       return;
     }
-
-    // update graph/display data
-    let citation = this.citationsDisplayed.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
-    if( citation ) {
-      citation.relatedBy[0]['ucdlib:favourite'] = true;
-      citation.favourite = true;
-    }
-    citation = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
-    if( citation ) {
-      citation.relatedBy[0]['ucdlib:favourite'] = true;
-      citation.favourite = true;
-    }
-    citation = (this.expert['@graph'] || []).filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
-    if( citation ) {
-      citation.relatedBy[0]['ucdlib:favourite'] = true;
-      citation.favourite = true;
-    }
-
-    // update featured citations list
-    citation = this.citationsDisplayed.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
-    if( citation ) {
-      this.featuredCitations.push(citation);
-
-      this._reSortCitations();
-    }
-
-    this._updateMaxCitationsIndex();
-
-    this._updateHeaderLabels();
-
-    this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
-    this.requestUpdate();
   }
 
   /**
@@ -935,22 +803,16 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
             if( utils.hasCdlStepFailed(stepStats) ) {
               this.dispatchEvent(new CustomEvent("loaded", {}));
                             const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
-              this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Work visibility could not be updated.', 'visible-publication');
+              this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Hide a work from my profile', {
+                run: () => this.DagsterModel.forceUpdateCitationVisibility(this.expertId, this.citationId, false),
+                onSuccess: () => {
+                  utils.markFailedUpdateForced(this.expertId, { type: 'work', name: citationText });
+                  this._applyCitationVisibility(this.citationId, false);
+                }
+              });
               return;
             }
-            let expert = await this.ExpertModel.get(
-              this.expertId,
-              `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`,
-              utils.getExpertApiOptions({
-                includeGrants: false,
-                worksPage: this.currentPage,
-                worksSize: this.resultsPerPage,
-                includeHidden: true,
-                includeWorksMisformatted: true
-              }),
-              true // clear cache
-            );
-            this._onExpertUpdate(expert);
+            this._applyCitationVisibility(this.citationId, false);
             this.dispatchEvent(new CustomEvent("loaded", {}));
             let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
             if( toastPopup ) toastPopup.showPopup('Hidden from Profile');
@@ -970,7 +832,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
                 const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
-        this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Work visibility could not be updated.', 'visible-publication');
+        this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Hide a work from my profile');
 
         if( window.gtag ) {
           gtag('event', 'citation_is_visible', {
@@ -983,37 +845,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         this.logger.error('failed to set citation to be hidden', { citationId : this.citationId, expertId : this.expertId });
         return;
       }
-
-      // update graph/display data
-      let citation = this.citationsDisplayed.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
-      if( citation ) {
-        citation.relatedBy[0]['is-visible'] = false;
-        citation['is-visible'] = false;
-      }
-      citation = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
-      if( citation ) {
-        citation.relatedBy[0]['is-visible'] = false;
-        citation['is-visible'] = false;
-      }
-      citation = (this.expert['@graph'] || []).filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
-      if( citation ) {
-        citation.relatedBy[0]['is-visible'] = false;
-        citation['is-visible'] = false;
-      }
-      citation = this.featuredCitations.filter(c => c.relatedBy?.[0]?.['@id'] === this.citationId)[0];
-      if( citation ) {
-        citation.relatedBy[0]['is-visible'] = false;
-        citation['is-visible'] = false;
-        this.featuredCitations = JSON.parse(JSON.stringify(this.featuredCitations));
-        this._updateMaxCitationsIndex();
-      }
-      this.hiddenCitations++;
-
-      this._updateHeaderLabels();
-
-      this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
-      this.requestUpdate();
-      return;
     } else if ( action === 'reject' ) {
       try {
         let res = await this.DagsterModel.rejectCitation(this.expertId, this.citationId);
@@ -1025,22 +856,16 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
             if( utils.hasCdlStepFailed(stepStats) ) {
               this.dispatchEvent(new CustomEvent("loaded", {}));
                             const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
-              this._showUpdateError('Work could not be rejected.', citationText, citationSubtext, 'Work could not be rejected.', 'reject-publication', 'https://oapolicy.universityofcalifornia.edu/');
+              this._showUpdateError('Work could not be rejected.', citationText, citationSubtext, 'Reject a work from my profile', {
+                run: () => this.DagsterModel.forceRejectCitation(this.expertId, this.citationId),
+                onSuccess: () => {
+                  utils.markFailedUpdateForced(this.expertId, { type: 'work', name: citationText });
+                  return this._refreshWorksList();
+                }
+              });
               return;
             }
-            let expert = await this.ExpertModel.get(
-              this.expertId,
-              `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`,
-              utils.getExpertApiOptions({
-                includeGrants: false,
-                worksPage: this.currentPage,
-                worksSize: this.resultsPerPage,
-                includeHidden: true,
-                includeWorksMisformatted: true
-              }),
-              true // clear cache
-            );
-            this._onExpertUpdate(expert);
+            await this._refreshWorksList();
             this.dispatchEvent(new CustomEvent("loaded", {}));
             let toastPopup = this.shadowRoot.querySelector('app-toast-popup');
             if( toastPopup ) toastPopup.showPopup('Removed from Profile');
@@ -1061,7 +886,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         this.dispatchEvent(new CustomEvent("loaded", {}));
 
                 const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
-        this._showUpdateError('Work could not be rejected.', citationText, citationSubtext, 'Work could not be rejected.', 'reject-publication', 'https://oapolicy.universityofcalifornia.edu/');
+        this._showUpdateError('Work could not be rejected.', citationText, citationSubtext, 'Reject a work from my profile');
 
         if( window.gtag ) {
           gtag('event', 'citation_reject', {
@@ -1075,20 +900,6 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
       }
     }
-
-    let expert = await this.ExpertModel.get(
-      this.expertId,
-      `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`, // subpage
-      utils.getExpertApiOptions({
-        includeGrants : false,
-        worksPage : this.currentPage,
-        worksSize : this.resultsPerPage,
-        includeHidden : true,
-        includeWorksMisformatted : true
-      }),
-      true // clear cache
-    );
-    this._onExpertUpdate(expert);
   }
 
   /**
@@ -1131,30 +942,142 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
   }
 
   /**
+   * @method _applyCitationVisibility
+   * @description directly update a citation's visibility across every tracked local array
+   * (citationsDisplayed, citations, expert graph, featuredCitations) and adjust derived
+   * counts, without a server refetch. Used for both the normal success path and a forced
+   * (CDL-bypass) update's success path.
+   *
+   * @param {String} citationId - id of the work
+   * @param {Boolean} visible - true if visible
+   */
+  _applyCitationVisibility(citationId, visible) {
+    let citation = this.citationsDisplayed.filter(c => c.relatedBy?.[0]?.['@id'] === citationId)[0];
+    if( citation ) {
+      citation.relatedBy[0]['is-visible'] = visible;
+      citation['is-visible'] = visible;
+    }
+    citation = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === citationId)[0];
+    if( citation ) {
+      citation.relatedBy[0]['is-visible'] = visible;
+      citation['is-visible'] = visible;
+    }
+    citation = (this.expert['@graph'] || []).filter(c => c.relatedBy?.[0]?.['@id'] === citationId)[0];
+    if( citation ) {
+      citation.relatedBy[0]['is-visible'] = visible;
+      citation['is-visible'] = visible;
+    }
+    citation = this.featuredCitations.filter(c => c.relatedBy?.[0]?.['@id'] === citationId)[0];
+    if( citation ) {
+      citation.relatedBy[0]['is-visible'] = visible;
+      citation['is-visible'] = visible;
+      this.featuredCitations = JSON.parse(JSON.stringify(this.featuredCitations));
+      this._updateMaxCitationsIndex();
+    }
+
+    this.hiddenCitations += visible ? -1 : 1;
+    this._updateHeaderLabels();
+
+    this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
+    this.requestUpdate();
+  }
+
+  /**
+   * @method _applyCitationFavourite
+   * @description directly update a citation's favourite/highlight status across every
+   * tracked local array and adjust the featured-citations list, without a server refetch.
+   * Used for both the normal success path and a forced (CDL-bypass) update's success path.
+   *
+   * @param {String} citationId - id of the work
+   * @param {Boolean} favourite - true if favourite
+   */
+  _applyCitationFavourite(citationId, favourite) {
+    let citation = this.citationsDisplayed.filter(c => c.relatedBy?.[0]?.['@id'] === citationId)[0];
+    if( citation ) {
+      citation.relatedBy[0]['ucdlib:favourite'] = favourite;
+      citation.favourite = favourite;
+    }
+    citation = this.citations.filter(c => c.relatedBy?.[0]?.['@id'] === citationId)[0];
+    if( citation ) {
+      citation.relatedBy[0]['ucdlib:favourite'] = favourite;
+      citation.favourite = favourite;
+    }
+    citation = (this.expert['@graph'] || []).filter(c => c.relatedBy?.[0]?.['@id'] === citationId)[0];
+    if( citation ) {
+      citation.relatedBy[0]['ucdlib:favourite'] = favourite;
+      citation.favourite = favourite;
+    }
+
+    if( favourite ) {
+      citation = this.citationsDisplayed.filter(c => c.relatedBy?.[0]?.['@id'] === citationId)[0];
+      if( citation ) {
+        this.featuredCitations.push(citation);
+        this._reSortCitations();
+      }
+    } else {
+      citation = this.featuredCitations.filter(c => c.relatedBy?.[0]?.['@id'] === citationId)[0];
+      if( citation ) {
+        this.featuredCitations = this.featuredCitations.filter(c => c.relatedBy?.[0]?.['@id'] !== citationId);
+        this._reSortCitations();
+      }
+    }
+
+    this._updateMaxCitationsIndex();
+    this._updateHeaderLabels();
+
+    this.citationsDisplayed = JSON.parse(JSON.stringify(this.citationsDisplayed));
+    this.requestUpdate();
+  }
+
+  /**
+   * @method _refreshWorksList
+   * @description re-fetch the expert and re-derive the works list display data. Used by
+   * the "reject" action (which removes the work entirely rather than toggling a flag, so
+   * a full refetch is simpler/more correct than manual local mutation), for both the
+   * normal success path and a forced (CDL-bypass) update's success path.
+   */
+  async _refreshWorksList() {
+    let expert = await this.ExpertModel.get(
+      this.expertId,
+      `/works-edit?page=${this.currentPage}&size=${this.resultsPerPage}`,
+      utils.getExpertApiOptions({
+        includeGrants: false,
+        worksPage: this.currentPage,
+        worksSize: this.resultsPerPage,
+        includeHidden: true,
+        includeWorksMisformatted: true
+      }),
+      true // clear cache
+    );
+    this._onExpertUpdate(expert);
+  }
+
+  /**
    * @method _showUpdateError
-   * @description show an error modal with a contact-us link.
+   * @description show an error modal. Only includes a contact-us link (and captures a
+   * forceAction to replay) when forceAction is provided; otherwise the update simply
+   * cannot be completed while CDL is down, with no bypass offered.
    * Stores citation context for the request-change modal.
    *
    * @param {String} errorMessage - sentence displayed in the modal body, e.g. "Work visibility could not be updated."
    * @param {String} citationText - work title stored for the request-change form
    * @param {String} citationSubtext - secondary metadata line (year, type) for the request-change form
    * @param {String} changeType - pre-selected value for the request-change dropdown
-   * @param {String} faqAnchor - hash fragment on /faq for troubleshooting link
-   * @param {String} [oapolicyUrl] - link to the UC Publication Management System
+   * @param {Object} [forceAction] - action to replay via the CDL-bypass force job if the user clicks "contact us"
+   * @param {Function} forceAction.run - launches the force job, returns the launchRun response
+   * @param {Function} forceAction.onSuccess - applies local state once the force job succeeds
    */
-  _showUpdateError(errorMessage, citationText, citationSubtext, changeType, faqAnchor, oapolicyUrl='https://oapolicy.universityofcalifornia.edu/listobjects.html?as=1&am=false&cid=1&tids=5&ipr=true') {
+  _showUpdateError(errorMessage, citationText, citationSubtext, changeType, forceAction=null) {
     this.requestChangeCitation = citationText;
     this.requestChangeCitationSubtext = citationSubtext;
     this.requestChangeCitationLabel = 'Work';
     this.requestChangeType = changeType;
+    this._pendingForceAction = forceAction;
 
     this.modalTitle = 'Update Failed';
     this.modalContent = `
-      <p>${errorMessage} Please try again later or make your changes directly in the
-        <a href="${oapolicyUrl}" target="_blank">UC Publication Management System (opens in new tab).</a>
-      </p>
-      <p>For more help, see <a href="/faq#${faqAnchor}">troubleshooting tips</a>.</p>
-      <p>For urgent changes, <a href="#" class="contact-link">contact us</a>.</p>
+      <p>${errorMessage} Please try again later.</p>
+      ${forceAction ? '<p>For urgent changes, <a href="#" class="contact-link">contact us</a>.</p>' : ''}
     `;
     this.showModal = true;
     this.hideCancel = true;
@@ -1166,8 +1089,9 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
 
   /**
    * @method _onRequestChange
-   * @description handle request-change event from the error modal; close the error
-   * modal and open the request-change form with the stored context.
+   * @description handle request-change event from the error modal: close the error modal
+   * and open the request-change form, which holds the captured force action (if any) and
+   * only replays it when the user actually submits the form.
    */
   _onRequestChange() {
     this.showModal = false;

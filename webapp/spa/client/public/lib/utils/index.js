@@ -816,6 +816,29 @@ class Utils {
   }
 
   /**
+   * @method markFailedUpdateForced
+   * @description flag a tracked failed-update entry as "forced" once the user has
+   * clicked "contact us" and the CDL-bypass force job has succeeded. The entry is kept
+   * (rather than dismissed) since CDL/Elements still hasn't been reconciled - the banner
+   * shows different copy for forced entries explaining that the change is live but CDL
+   * will need to be manually reconciled once the service is restored.
+   *
+   * @param {String} expertId
+   * @param {Object} opts
+   * @param {String} opts.type
+   * @param {String} opts.name
+   */
+  markFailedUpdateForced(expertId, opts = {}) {
+    const updates = this._readFailedUpdatesRaw().map(u => {
+      if( u.expertId === expertId && u.type === opts.type && u.name === opts.name ) {
+        return { ...u, forced: true };
+      }
+      return u;
+    });
+    this._writeFailedUpdatesRaw(updates);
+  }
+
+  /**
    * @method hasCdlStepFailed
    * @description check whether any CDL step in a dagster run's stepStats failed.
    * Only CDL failures warrant showing the "Update Failed" contact-us modal — ES/Postgres

@@ -591,6 +591,32 @@ return html`
       padding-left: 1rem;
     }
 
+    .refreshing-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .refreshing-label strong {
+      font-style: italic;
+    }
+
+    .refresh-spinner {
+      display: inline-block;
+      flex-shrink: 0;
+      width: 1rem;
+      height: 1rem;
+      border: 3px solid var(--color-aggie-gold-70);
+      border-top-color: var(--color-aggie-gold);
+      border-radius: 50%;
+      animation: refresh-spin 0.75s ease infinite;
+    }
+
+    @keyframes refresh-spin {
+      from { transform: rotate(0turn); }
+      to { transform: rotate(1turn); }
+    }
+
     .no-display-data {
       padding-top: .5rem;
       padding-left: 0;
@@ -860,7 +886,8 @@ return html`
       .userEmail="${APP_CONFIG.user?.email || ''}"
       .itemName="${this.requestChangeCitation}"
       .changeType="${this.requestChangeType}"
-      @cancel=${(e) => this.showRequestChangeModal = false}>
+      .forceAction="${this._pendingForceAction}"
+      @cancel=${(e) => { this.showRequestChangeModal = false; this._pendingForceAction = null; }}>
     </app-request-change-modal>
     <div class="hero-main site-frame">
       <div class="hero-text">
@@ -948,10 +975,11 @@ return html`
     </div>
 
     ${(() => {
+      const FORCED_NOTE = "The Aggie Experts team has been notified and will make this change when the service is restored. We'll let you know when the update is complete.";
       const isInfoOnly = u => !u.cdlFailed && u.esFailed;
       const toListItems = entries => entries.map(u => ({
         label: u.name,
-        subtext: utils.FAILED_UPDATE_SHORT_LABELS[u.action] || u.action
+        subtext: (utils.FAILED_UPDATE_SHORT_LABELS[u.action] || u.action) + (u.forced ? ' ' + FORCED_NOTE : '')
       }));
 
       const groups = [
@@ -992,7 +1020,11 @@ return html`
         <span class="${!this.dagsterHealthy ? 'tooltip' : ''}" data-text="Temporarily disabled" style="position: relative; display: inline-flex;">
           <button class="btn--invert" @click="${this._refreshProfile}" ?disabled="${this.refreshingProfileData || !this.dagsterHealthy}"><span>Refresh Profile Data</span></button>
         </span>
-        <span class="last-updated-label" ?hidden="${!this.lastUpdated}">Last Updated: ${this.lastUpdated}</span>
+        <span class="last-updated-label refreshing-label" ?hidden="${!this.refreshingProfileData}">
+          <span class="refresh-spinner"></span>
+          <strong>Refreshing...</strong>usually takes about a minute
+        </span>
+        <span class="last-updated-label" ?hidden="${this.refreshingProfileData || !this.lastUpdated}">Last Updated: ${this.lastUpdated}</span>
       </div>
       
       <div class="experts">

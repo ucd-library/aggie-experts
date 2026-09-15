@@ -88,8 +88,8 @@ class DagsterAPI {
   /**
    * @method runUpdateScholarlyRecord
    * @description Launch a single Dagster job that updates a work or grant record in
-   * both Elasticsearch (update_scholarly_record_es step) and CDL/Elements
-   * (update_scholarly_record_cdl step) in parallel.
+   * CDL/Elements (update_scholarly_record_cdl step), then Elasticsearch and Postgres
+   * (which are skipped if the CDL step fails).
    *
    * @param {String} expertId
    * @param {String} relationshipId
@@ -99,13 +99,13 @@ class DagsterAPI {
    * @param {String} opts.favorite - 'yes' or 'no'
    * @param {String} opts.reject - 'yes' or 'no'
    * @param {String} opts.cdl - 'yes' or 'no'; controls cdl_enabled on the CDL step
+   * @param {Boolean} opts.force - bypass CDL/Elements entirely; only update Elasticsearch and Postgres
    * @returns {Promise<Object>} Dagster launchRun GraphQL response
    */
   async runUpdateScholarlyRecord(expertId, relationshipId, opts = {}) {
     if (!expertId) throw new Error('expertId is required');
     if (!relationshipId) throw new Error('relationshipId is required');
 
-    const cdlEnabled = opts.cdl !== 'no';
     const sharedConfig = {
       expert_id: expertId,
       relationship_id: relationshipId,
@@ -115,6 +115,17 @@ class DagsterAPI {
       ...(opts.reject && { reject: opts.reject }),
     };
 
+    if (opts.force) {
+      const runConfig = {
+        ops: {
+          update_scholarly_record_es: { config: sharedConfig },
+          update_scholarly_record_postgres: { config: sharedConfig },
+        },
+      };
+      return this.launchRun('force_update_scholarly_record_job', JSON.stringify(runConfig));
+    }
+
+    const cdlEnabled = opts.cdl !== 'no';
     const runConfig = {
       ops: {
         update_scholarly_record_es: { config: sharedConfig },
@@ -129,20 +140,20 @@ class DagsterAPI {
   /**
    * @method runUpdateExpert
    * @description Launch a single Dagster job that updates or deletes an expert record in
-   * both Elasticsearch (update_expert_es step) and CDL/Elements (update_expert_cdl step)
-   * in parallel.
+   * CDL/Elements (update_expert_cdl step), then Elasticsearch and Postgres (which are
+   * skipped if the CDL step fails).
    *
    * @param {String} expertId
    * @param {Object} opts
    * @param {String} opts.visibility - 'yes' or 'no'
    * @param {String} opts.delete - 'yes' or 'no'
    * @param {String} opts.cdl - 'yes' or 'no'; controls cdl_enabled on the CDL step
+   * @param {Boolean} opts.force - bypass CDL/Elements entirely; only update Elasticsearch and Postgres
    * @returns {Promise<Object>} Dagster launchRun GraphQL response
    */
   async runUpdateExpert(expertId, opts = {}) {
     if (!expertId) throw new Error('expertId is required');
 
-    const cdlEnabled = opts.cdl !== 'no';
     const esAndCdlConfig = {
       expert_id: expertId,
       ...(opts.visibility && { visibility: opts.visibility }),
@@ -154,6 +165,17 @@ class DagsterAPI {
       ...(opts.visibility && { visibility: opts.visibility }),
     };
 
+    if (opts.force) {
+      const runConfig = {
+        ops: {
+          update_expert_es: { config: esAndCdlConfig },
+          update_expert_postgres: { config: pgConfig },
+        },
+      };
+      return this.launchRun('force_update_expert_job', JSON.stringify(runConfig));
+    }
+
+    const cdlEnabled = opts.cdl !== 'no';
     const runConfig = {
       ops: {
         update_expert_es: { config: esAndCdlConfig },
@@ -168,8 +190,9 @@ class DagsterAPI {
   /**
    * @method runUpdateExpertAvailability
    * @description Launch a single Dagster job that updates expert availability labels in
-   * both Elasticsearch (update_expert_availability_es step) and CDL/Elements
-   * (update_expert_availability_cdl step) in parallel.
+   * CDL/Elements (update_expert_availability_cdl step), then Elasticsearch (which is
+   * skipped if the CDL step fails). Pass opts.force to bypass CDL/Elements entirely and
+   * update only Elasticsearch.
    *
    * @param {String} expertId
    * @param {Object} labels
@@ -178,12 +201,12 @@ class DagsterAPI {
    * @param {Array} labels.currentLabels
    * @param {Object} opts
    * @param {String} opts.cdl - 'yes' or 'no'; controls cdl_enabled on the CDL step
+   * @param {Boolean} opts.force - bypass CDL/Elements entirely; only update Elasticsearch
    * @returns {Promise<Object>} Dagster launchRun GraphQL response
    */
   async runUpdateExpertAvailability(expertId, labels = {}, opts = {}) {
     if (!expertId) throw new Error('expertId is required');
 
-    const cdlEnabled = opts.cdl !== 'no';
     const sharedConfig = {
       expert_id: expertId,
       labels_to_add: labels.labelsToAddOrEdit || [],
@@ -191,6 +214,16 @@ class DagsterAPI {
       current_labels: labels.currentLabels || [],
     };
 
+    if (opts.force) {
+      const runConfig = {
+        ops: {
+          update_expert_availability_es: { config: sharedConfig },
+        },
+      };
+      return this.launchRun('force_update_expert_availability_job', JSON.stringify(runConfig));
+    }
+
+    const cdlEnabled = opts.cdl !== 'no';
     const runConfig = {
       ops: {
         update_expert_availability_es: { config: sharedConfig },
@@ -347,7 +380,21 @@ class DagsterAPI {
     return this.graphqlQuery('GetRunStatus', query, { runId });
   }
 
-  async getLastRunsForPartition(jobName, partitionName, limit = 3) {
+  /**
+   * @method getLastRunsForPartition
+   * @description Fetch the most recent Dagster runs for a job/partition, most recent first.
+   * Filtering by `statuses` happens server-side (in the GraphQL query itself), so `limit`
+   * applies to the matching runs, not to all runs before filtering — this matters when
+   * callers only care about e.g. successful runs, since recent failures would otherwise
+   * push an older success out of a client-side-filtered result window.
+   *
+   * @param {String} jobName - Dagster job name
+   * @param {String} partitionName - Dagster partition name
+   * @param {Number} [limit=3] - max number of matching runs to return
+   * @param {Array<String>} [statuses] - optional DagsterRunStatus values to filter to (e.g. ['SUCCESS'])
+   * @returns {Promise<Object>} Dagster runsOrError GraphQL response
+   */
+  async getLastRunsForPartition(jobName, partitionName, limit = 3, statuses = null) {
     if (!jobName) throw new Error('jobName is required');
     if (!partitionName) throw new Error('partitionName is required');
 
@@ -397,7 +444,8 @@ class DagsterAPI {
       pipelineName: jobName,
       tags: [
         { key: "dagster/partition", value: partitionName }
-      ]
+      ],
+      ...(statuses && statuses.length && { statuses })
     };
 
     return this.graphqlQuery('GetLastRunsForPartition', query, {
@@ -419,16 +467,17 @@ class DagsterAPI {
    * @param {String} [opts.message] - Slack message body
    * @param {String} [opts.severity] - 'info', 'warning', or 'error'
    * @param {String} [opts.source] - source label shown in the notification
+   * @param {String[]} [opts.mentions] - Slack member IDs to @mention
    * @returns {Promise<Object>} Dagster launchRun GraphQL response
    */
   sendSlackNotification(opts = {}) {
-    const { title, message = '', severity = 'info', source = 'webapp' } = opts;
+    const { title, message = '', severity = 'info', source = 'webapp', mentions = [] } = opts;
     if( !title ) throw new Error('title is required');
 
     const runConfig = {
       ops: {
         send_slack_notification: {
-          config: { title, message, severity, source }
+          config: { title, message, severity, source, mentions }
         }
       }
     };

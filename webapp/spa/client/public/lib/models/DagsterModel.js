@@ -39,15 +39,19 @@ class DagsterModel extends BaseModel {
 
   /**
    * @method getLastRunForPartition
-   * @description get last run for dagster job partition
+   * @description get last run(s) for dagster job partition
    *
    * @param {String} jobName dagster job name
    * @param {String} partitionName dagster partition name (cas)
+   * @param {Object} opts
+   * @param {Array<String>} [opts.statuses] - optional DagsterRunStatus values to filter to
+   *   server-side (e.g. ['SUCCESS']), so a run matching the filter isn't pushed out of the
+   *   result window by more recent non-matching runs
    *
    * @returns {Promise} resolves to record
   */
-  async getLastRunForPartition(jobName, partitionName) {
-    return await this.service.getLastRunForPartition(jobName, partitionName);
+  async getLastRunForPartition(jobName, partitionName, opts = {}) {
+    return await this.service.getLastRunForPartition(jobName, partitionName, opts);
   }
 
   /**
@@ -156,6 +160,87 @@ class DagsterModel extends BaseModel {
   */
   async updateExpertAvailability(id, labels={}) {
     return await this.service.updateExpertAvailability(id, labels);
+  }
+
+  /**
+   * @method forceUpdateCitationVisibility
+   * @description update visibility of an experts work, bypassing CDL/Elements entirely
+   *
+   * @param {String} id expert id
+   * @param {String} citationId id of work
+   * @param {Boolean} visible true if visible
+   *
+   * @returns {Promise} resolves to record
+   */
+  async forceUpdateCitationVisibility(id, citationId, visible=false) {
+    citationId = citationId.replace('/relationship', '');
+    return await this.service.updateCitationVisibility(id, citationId, visible, { force: true });
+  }
+
+  /**
+   * @method forceRejectCitation
+   * @description remove citation from expert, bypassing CDL/Elements entirely
+   *
+   * @param {String} id expert id
+   * @param {String} citationId id of work
+   *
+   * @returns {Promise} resolves to record
+   */
+  async forceRejectCitation(id, citationId) {
+    citationId = citationId.replace('/relationship', '');
+    return await this.service.rejectCitation(id, citationId, { force: true });
+  }
+
+  /**
+   * @method forceUpdateGrantVisibility
+   * @description update visibility of an experts grant, bypassing CDL/Elements entirely
+   *
+   * @param {String} id expert id
+   * @param {String} grantId id of grant
+   * @param {Boolean} visible true if visible
+   *
+   * @returns {Promise} resolves to record
+   */
+  async forceUpdateGrantVisibility(id, grantId, visible=false) {
+    return await this.service.updateGrantVisibility(id, grantId, visible, { force: true });
+  }
+
+  /**
+   * @method forceDeleteExpert
+   * @description delete expert from aggie experts, bypassing CDL/Elements entirely
+   *
+   * @param {String} id expert id
+   *
+   * @returns {Promise} resolves to record
+  */
+  async forceDeleteExpert(id) {
+    return await this.service.deleteExpert(id, { force: true });
+  }
+
+  /**
+   * @method forceUpdateExpertVisibility
+   * @description update visibility of an expert, bypassing CDL/Elements entirely
+   *
+   * @param {String} id expert id
+   * @param {Boolean} visible true if visible
+   *
+   * @returns {Promise} resolves to record
+   */
+  async forceUpdateExpertVisibility(id, visible=false) {
+    return await this.service.updateExpertVisibility(id, visible, { force: true });
+  }
+
+  /**
+   * @method forceUpdateExpertAvailability
+   * @description update an experts availability, bypassing CDL/Elements entirely
+   *
+   * @param {String} id expert id
+   * @param {Object} labels object with labels to add and remove
+   *
+   * @returns {Promise} resolves to record
+  */
+  async forceUpdateExpertAvailability(id, labels={}) {
+    return await this.service.updateExpertAvailability(id, labels, { force: true });
   }
 
 }

@@ -46,12 +46,12 @@ router.post('/last-runs-for-partition',
   dagster_can_run_partition(),
   async (req, res, next) => {
   try {
-    const { jobName, partition, limit = 3 } = req.body;
+    const { jobName, partition, limit = 3, statuses } = req.body;
     if (!jobName || !partition) {
       return res.status(400).json({ error: 'jobName and partition are required' });
     }
 
-    const result = await dagsterAPI.getLastRunsForPartition(jobName, partition, parseInt(limit, 10));
+    const result = await dagsterAPI.getLastRunsForPartition(jobName, partition, parseInt(limit, 10), statuses);
     res.json(result);
   } catch (error) {
     logger.error('Error fetching last runs for partition', error);
@@ -145,14 +145,14 @@ router.post('/admin-update/scholarly-record',
   dagster_can_run_partition({requirePartition: false}),
   async (req, res, next) => {
   try {
-    const { expertId, relationshipId, type, elasticsearch, visibility, favorite, reject } = req.body;
+    const { expertId, relationshipId, type, elasticsearch, visibility, favorite, reject, force } = req.body;
     let cdl = config.experts.propogateCdlChanges === true ? 'yes' : 'no';
     if (!expertId || !relationshipId) {
       return res.status(400).json({ error: 'expertId and relationshipId are required' });
     }
 
     const result = await dagsterAPI.runUpdateScholarlyRecord(expertId, relationshipId, {
-      type, elasticsearch, cdl, visibility, favorite, reject
+      type, elasticsearch, cdl, visibility, favorite, reject, force: force === true
     });
     res.json(result);
   } catch (error) {
@@ -167,14 +167,14 @@ router.post('/admin-update/expert',
   dagster_can_run_partition({requirePartition: false}),
   async (req, res, next) => {
   try {
-    const { expertId, elasticsearch, visibility, delete: del } = req.body;
+    const { expertId, elasticsearch, visibility, delete: del, force } = req.body;
     let cdl = config.experts.propogateCdlChanges === true ? 'yes' : 'no';
     if (!expertId) {
       return res.status(400).json({ error: 'expertId is required' });
     }
 
     const result = await dagsterAPI.runUpdateExpert(expertId, {
-      elasticsearch, cdl, visibility, delete: del
+      elasticsearch, cdl, visibility, delete: del, force: force === true
     });
     res.json(result);
   } catch (error) {
@@ -189,7 +189,7 @@ router.post('/admin-update/availability',
   dagster_can_run_partition({requirePartition: false}),
   async (req, res, next) => {
   try {
-    const { expertId, elasticsearch, labelsToAddOrEdit, labelsToRemove, currentLabels } = req.body;
+    const { expertId, elasticsearch, labelsToAddOrEdit, labelsToRemove, currentLabels, force } = req.body;
     let cdl = config.experts.propogateCdlChanges === true ? 'yes' : 'no';
     if (!expertId) {
       return res.status(400).json({ error: 'expertId is required' });
@@ -197,7 +197,7 @@ router.post('/admin-update/availability',
 
     const result = await dagsterAPI.runUpdateExpertAvailability(expertId, {
       labelsToAddOrEdit, labelsToRemove, currentLabels
-    }, { elasticsearch, cdl });
+    }, { elasticsearch, cdl, force: force === true });
     res.json(result);
   } catch (error) {
     logger.error('Error running admin-update availability', error);
