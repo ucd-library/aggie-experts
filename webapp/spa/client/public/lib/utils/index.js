@@ -633,6 +633,7 @@ class Utils {
    */
   FAILED_UPDATE_SUCCESS_LABELS = {
     'hide-work':           'Work hidden',
+    'reject-work':         'Work rejected',
     'show-work':           'Work set to visible',
     'add-highlight':       'Work added to highlights',
     'remove-highlight':    'Work removed from highlights',
@@ -648,6 +649,7 @@ class Utils {
    */
   FAILED_UPDATE_SHORT_LABELS = {
     'hide-work':           'could not be hidden.',
+    'reject-work':         'could not be rejected.',
     'show-work':           'could not be set to visible.',
     'add-highlight':       'could not be added to highlights.',
     'remove-highlight':    'could not be removed from highlights.',
@@ -662,6 +664,7 @@ class Utils {
    */
   FAILED_UPDATE_ERROR_LABELS = {
     'hide-work':           'Work could not be hidden',
+    'reject-work':         'Work could not be rejected',
     'show-work':           'Work could not be set to visible',
     'add-highlight':       'Work could not be added to highlights',
     'remove-highlight':    'Work could not be removed from highlights',
@@ -669,6 +672,31 @@ class Utils {
     'show-grant':          'Grant could not be set to visible',
     'update-availability': 'Availability could not be updated'
   };
+
+  /**
+   * Action slugs eligible for the CDL-bypass "contact us" force path. Everything else
+   * isn't urgent enough to force through immediately and can wait for the outage to resolve.
+   */
+  FORCE_ELIGIBLE_ACTIONS = ['hide-work', 'reject-work', 'hide-grant', 'delete-expert'];
+
+  /**
+   * @method isForceEligibleAction
+   * @description whether a failed-update action slug is one of the urgent actions the
+   * CDL-bypass "contact us" flow supports.
+   *
+   * @param {String} action - action slug
+   * @returns {Boolean}
+   */
+  isForceEligibleAction(action) {
+    return this.FORCE_ELIGIBLE_ACTIONS.includes(action);
+  }
+
+  /**
+   * Note appended after a failed update's label once the user has forced it through via
+   * the CDL-bypass "contact us" flow (the change is live in Elasticsearch; CDL/Elements
+   * still needs manual reconciliation once the outage is resolved).
+   */
+  FAILED_UPDATE_FORCED_NOTE = "Recent changes are publicly visible immediately. Once service is restored, our team will manually update the system's data source to preserve your changes.";
 
   /**
    * @method getPublicIndexName
@@ -740,11 +768,15 @@ class Utils {
    * @param {Object} opts
    * @param {String} opts.type - 'work' | 'grant' | 'availability'
    * @param {String} opts.name - display name of the item (work title, grant name, etc.)
+   * @param {String} [opts.id] - relationshipId/citationId of the item, when there is one.
+   *   Used instead of name to identify the entry so works/grants that share a title don't
+   *   collide with each other. Types with no per-item id (expert, availability) fall back
+   *   to matching on name, which is fine since there's only one entry per expert for those.
    * @param {String} opts.action - action slug from FAILED_UPDATE_ACTIONS
    * @param {Array} opts.stepStats - stepStats array from the dagster run response
    */
   async trackFailedUpdate(expertId, opts = {}) {
-    const { type, name = '', action, stepStats = [] } = opts;
+    const { type, name = '', id = null, action, stepStats = [] } = opts;
     const cdlFailed = stepStats.some(s => s.stepKey?.endsWith('_cdl') && s.status === 'FAILURE');
     const esFailed  = stepStats.some(s => s.stepKey?.endsWith('_es')  && s.status === 'FAILURE');
     if( !cdlFailed && !esFailed ) return;
@@ -755,9 +787,9 @@ class Utils {
       : null;
 
     const updates = this._readFailedUpdatesRaw().filter(u =>
-      !(u.expertId === expertId && u.type === type && u.name === name)
+      !(u.expertId === expertId && u.type === type && (id ? u.id === id : u.name === name))
     );
-    updates.push({ expertId, type, name, action, cdlFailed, esFailed, indexName, timestamp: Date.now() });
+    updates.push({ expertId, type, name, id, action, cdlFailed, esFailed, indexName, timestamp: Date.now() });
     this._writeFailedUpdatesRaw(updates);
   }
 
@@ -802,13 +834,18 @@ class Utils {
    * @param {Object} opts
    * @param {String} opts.type
    * @param {String} opts.name
+   * @param {String} [opts.id] - identifies the entry instead of name, when there is one (see trackFailedUpdate)
    * @param {String} opts.action
    */
   dismissFailedUpdate(expertId, opts = {}) {
     const updates = this._readFailedUpdatesRaw().filter(u => {
       if( u.expertId !== expertId ) return true;
       if( opts.type   && u.type   !== opts.type   ) return true;
-      if( opts.name   && u.name   !== opts.name   ) return true;
+      if( opts.id ) {
+        if( u.id !== opts.id ) return true;
+      } else if( opts.name && u.name !== opts.name ) {
+        return true;
+      }
       if( opts.action && u.action !== opts.action ) return true;
       return false;
     });
@@ -827,13 +864,13 @@ class Utils {
    * @param {Object} opts
    * @param {String} opts.type
    * @param {String} opts.name
+   * @param {String} [opts.id] - identifies the entry instead of name, when there is one (see trackFailedUpdate)
    */
   markFailedUpdateForced(expertId, opts = {}) {
     const updates = this._readFailedUpdatesRaw().map(u => {
-      if( u.expertId === expertId && u.type === opts.type && u.name === opts.name ) {
-        return { ...u, forced: true };
-      }
-      return u;
+      const matches = u.expertId === expertId && u.type === opts.type &&
+        (opts.id ? u.id === opts.id : u.name === opts.name);
+      return matches ? { ...u, forced: true } : u;
     });
     this._writeFailedUpdatesRaw(updates);
   }

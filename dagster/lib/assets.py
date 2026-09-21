@@ -29,6 +29,15 @@ from .configs import (
 )
 from .utils import CODE_VERSION, exec
 
+CDL_VALID_INSTANCES = ("prod", "qa")
+
+
+def _check_cdl_instance_valid(context_description: str) -> None:
+    """Raise dg.Failure if CDL_PROPAGATE_CHANGES_INSTANCE is set to an unrecognized CDL instance."""
+    instance = os.getenv("CDL_PROPAGATE_CHANGES_INSTANCE")
+    if instance and instance not in CDL_VALID_INSTANCES:
+        raise dg.Failure(description=f"CDL instance '{instance}' is not a valid CDL environment; {context_description}")
+
 
 # ---------------------------------------------------------------------------
 # Init / elasticsearch assets
@@ -128,6 +137,7 @@ def fetch_user_list_from_cdl(context, config: FetchUserListConfig) -> None:
     """Get current user list from CDL and create dynamic partitions."""
     if os.getenv("CDL_SERVICE_DOWN") == "true":
         raise dg.Failure(description="CDL service is down; cannot fetch user list")
+    _check_cdl_instance_valid("cannot fetch user list")
 
     result = exec(["experts", "harvest", "dagster", "init-user-partitions", config.group_id])
 
@@ -154,6 +164,7 @@ def extract_user(context) -> None:
 
     if os.getenv("CDL_SERVICE_DOWN") == "true":
         raise dg.Failure(description=f"CDL service is down; cannot extract user {user_id}")
+    _check_cdl_instance_valid(f"cannot extract user {user_id}")
 
     run = context.dagster_run
 
@@ -430,6 +441,8 @@ def update_expert_postgres(context: AssetExecutionContext, config: UpdateExpertP
     ]
     if config.visibility is not None:
         cmd += ["--visibility", config.visibility]
+    if config.delete is not None:
+        cmd += ["--delete", config.delete]
 
     result = exec(cmd)
     context.add_output_metadata(metadata={

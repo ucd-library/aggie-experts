@@ -20,6 +20,7 @@ import {
   patchExpertCdlVisibility,
   patchExpertPgVisibility,
   deleteExpert,
+  deleteExpertPg,
   deleteAuthorship,
   patchExpertAvailabilityEs,
   patchExpertAvailabilityCdl,
@@ -224,13 +225,24 @@ update
         process.exit(1);
       }
       const expertModel = await buildExpertModel();
-      const origPropagate = config.experts.cdl.authorship.propagate;
-      config.experts.cdl.authorship.propagate = doCdl;
-      try {
-        await deleteAuthorship({ expertModel, id: relationshipId, expertId, logger, config });
-      } finally {
-        config.experts.cdl.authorship.propagate = origPropagate;
+      const errors = [];
+
+      // Only touch ES/CDL when this invocation actually asked for one of them - a
+      // postgres-only invocation (the Dagster postgres step) has no business reading or
+      // mutating the ES graph node at all.
+      if (doEs || doCdl) {
+        const origPropagate = config.experts.cdl.authorship.propagate;
+        config.experts.cdl.authorship.propagate = doCdl;
+        try {
+          await deleteAuthorship({ expertModel, id: relationshipId, expertId, logger, config, doEs });
+        } catch (e) {
+          logger.error({ error: e.message }, `Reject failed for ${expertId}`);
+          errors.push({ step: doEs ? 'elasticsearch' : 'cdl', message: e.message });
+        } finally {
+          config.experts.cdl.authorship.propagate = origPropagate;
+        }
       }
+
       if (doPg) {
         const pgClient = new PgClient();
         try {
@@ -239,10 +251,19 @@ update
             `DELETE FROM api.expert_work_role WHERE role_id = $1 AND expert_id = $2`,
             [rid, expertId.replace('expert/', '')]
           );
+        } catch (e) {
+          logger.error({ error: e.message }, `Postgres reject failed for ${expertId}`);
+          errors.push({ step: 'postgres', message: e.message });
         } finally {
           await pgClient.end();
         }
       }
+
+      if (errors.length > 0) {
+        logger.error(JSON.stringify({ status: 'error', expertId, relationshipId, type, errors }));
+        process.exit(1);
+      }
+
       logger.info(JSON.stringify({ status: 'ok', expertId, relationshipId, rejected: true }));
       process.exit(0);
     }
@@ -330,13 +351,41 @@ update
     const expertModel = await buildExpertModel();
 
     if (doDelete) {
-      const origPropagate = config.experts.cdl.expert.propagate;
-      config.experts.cdl.expert.propagate = doCdl;
-      try {
-        await deleteExpert({ expertModel, expertId, logger, config });
-      } finally {
-        config.experts.cdl.expert.propagate = origPropagate;
+      const errors = [];
+
+      // Only touch ES/CDL when this invocation actually asked for one of them - a
+      // postgres-only invocation (the Dagster postgres step) has no business reading or
+      // mutating the ES graph document at all.
+      if (doEs || doCdl) {
+        const origPropagate = config.experts.cdl.expert.propagate;
+        config.experts.cdl.expert.propagate = doCdl;
+        try {
+          await deleteExpert({ expertModel, expertId, logger, config, doEs });
+        } catch (e) {
+          logger.error({ error: e.message }, `Delete failed for ${expertId}`);
+          errors.push({ step: doEs ? 'elasticsearch' : 'cdl', message: e.message });
+        } finally {
+          config.experts.cdl.expert.propagate = origPropagate;
+        }
       }
+
+      if (doPg) {
+        const pgClient = new PgClient();
+        try {
+          await deleteExpertPg({ pgClient, expertId, logger });
+        } catch (e) {
+          logger.error({ error: e.message }, `Postgres delete failed for ${expertId}`);
+          errors.push({ step: 'postgres', message: e.message });
+        } finally {
+          await pgClient.end();
+        }
+      }
+
+      if (errors.length > 0) {
+        logger.error(JSON.stringify({ status: 'error', expertId, errors }));
+        process.exit(1);
+      }
+
       logger.info(JSON.stringify({ status: 'ok', expertId, deleted: true }));
       process.exit(0);
     }

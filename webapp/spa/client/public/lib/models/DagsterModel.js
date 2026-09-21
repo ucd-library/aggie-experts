@@ -217,32 +217,6 @@ class DagsterModel extends BaseModel {
     return await this.service.deleteExpert(id, { force: true });
   }
 
-  /**
-   * @method forceUpdateExpertVisibility
-   * @description update visibility of an expert, bypassing CDL/Elements entirely
-   *
-   * @param {String} id expert id
-   * @param {Boolean} visible true if visible
-   *
-   * @returns {Promise} resolves to record
-   */
-  async forceUpdateExpertVisibility(id, visible=false) {
-    return await this.service.updateExpertVisibility(id, visible, { force: true });
-  }
-
-  /**
-   * @method forceUpdateExpertAvailability
-   * @description update an experts availability, bypassing CDL/Elements entirely
-   *
-   * @param {String} id expert id
-   * @param {Object} labels object with labels to add and remove
-   *
-   * @returns {Promise} resolves to record
-  */
-  async forceUpdateExpertAvailability(id, labels={}) {
-    return await this.service.updateExpertAvailability(id, labels, { force: true });
-  }
-
 }
 
 module.exports = new DagsterModel();

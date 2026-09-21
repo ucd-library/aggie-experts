@@ -38,11 +38,6 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
       searchItems: { type: Array },
       searchItemsLoading: { type: Boolean },
       selectedItem: { type: Object },
-      initialAvailability: { type: Object },
-      collabProjects: { type: Boolean },
-      commPartner: { type: Boolean },
-      industProjects: { type: Boolean },
-      mediaInterviews: { type: Boolean },
       additionalNotes: { type: String },
       submitting: { type: Boolean },
       applying: { type: Boolean },
@@ -73,16 +68,16 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
     this.searchItems = [];
     this.searchItemsLoading = false;
     this.selectedItem = null;
-    this.initialAvailability = null;
-    this.collabProjects = false;
-    this.commPartner = false;
-    this.industProjects = false;
-    this.mediaInterviews = false;
     this.additionalNotes = '';
     this.submitting = false;
     this.applying = false;
     this.submitted = false;
     this.submitError = false;
+
+    // Set from forceAction.onSuccess's return value (e.g. delete-expert's '/auth/logout') so
+    // the redirect waits for the user to dismiss the success screen instead of firing
+    // immediately underneath it.
+    this._pendingRedirect = null;
   }
 
   /**
@@ -110,6 +105,7 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
    */
   _onCancel() {
     const shouldReload = this.cdlDown && this.submitted;
+    const redirectUrl = this._pendingRedirect;
 
     this.additionalNotes = '';
     this.changeType = '';
@@ -117,15 +113,14 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
     this.searchLabel = '';
     this.searchItems = [];
     this.selectedItem = null;
-    this.collabProjects = false;
-    this.commPartner = false;
-    this.industProjects = false;
-    this.mediaInterviews = false;
     this.submitted = false;
     this.submitError = false;
+    this._pendingRedirect = null;
     this.dispatchEvent(new CustomEvent('cancel', {}));
 
-    if( shouldReload ) {
+    if( redirectUrl ) {
+      window.location.replace(redirectUrl);
+    } else if( shouldReload ) {
       window.location.reload();
     }
   }
@@ -161,13 +156,6 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
     this.searchQuery = '';
     this.searchItems = [];
     this.selectedItem = null;
-
-    if( v.includes('availability') && this.initialAvailability ) {
-      this.collabProjects = this.initialAvailability.collabProjects || false;
-      this.commPartner = this.initialAvailability.commPartner || false;
-      this.industProjects = this.initialAvailability.industProjects || false;
-      this.mediaInterviews = this.initialAvailability.mediaInterviews || false;
-    }
 
     if( isWork || isGrant ) {
       await this._loadSearchItems(isWork ? 'work' : 'grant');
@@ -272,14 +260,10 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
           return;
         }
 
-        await this.forceAction.onSuccess?.();
+        const redirectUrl = await this.forceAction.onSuccess?.();
+        if( redirectUrl ) this._pendingRedirect = redirectUrl;
       } else if( this.cdlDown ) {
-        let dagsterRes;
-        if( this._isAvailability() ) {
-          dagsterRes = await this._applyAvailabilityChange();
-        } else {
-          dagsterRes = await this._applyChange();
-        }
+        const dagsterRes = await this._applyChange();
 
         // Send the slack notification immediately (fire and forget)
         this.ExpertModel.requestChange({
@@ -357,61 +341,22 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
   }
 
   /**
-   * @method _isAvailability
-   * @description returns true when the selected change type is for availability settings
-   *
-   * @returns {Boolean}
-   */
-  _isAvailability() {
-    return this.changeType.toLowerCase().includes('availability');
-  }
-
-  /**
    * @method _buildCitation
    * @description build the citation string for the slack notification
    *
    * @returns {String}
    */
   _buildCitation() {
-    if( this._isAvailability() ) {
-      const selected = [];
-      if( this.collabProjects ) selected.push('Collaborative Projects');
-      if( this.commPartner ) selected.push('Community Partnerships');
-      if( this.industProjects ) selected.push('Industry Projects');
-      if( this.mediaInterviews ) selected.push('Media Interviews');
-      return selected.length ? `Availability: ${selected.join(', ')}` : 'Availability settings';
-    }
     if( this.dagsterDown ) return this.selectedItem?.label || this.searchQuery || '';
     return this.itemSubtext ? `${this.itemName}\n${this.itemSubtext}` : this.itemName;
-  }
-
-  /**
-   * @method _applyAvailabilityChange
-   * @description in cdlDown mode, force-apply the checked availability options directly to
-   * Elasticsearch, bypassing CDL/Elements (which is known to be down)
-   */
-  async _applyAvailabilityChange() {
-    const openTo = {
-      collabProjects: this.collabProjects,
-      commPartner: this.commPartner,
-      industProjects: this.industProjects,
-      mediaInterviews: this.mediaInterviews
-    };
-    const prevOpenTo = {
-      collabProjects: !this.collabProjects,
-      commPartner: !this.commPartner,
-      industProjects: !this.industProjects,
-      mediaInterviews: !this.mediaInterviews
-    };
-    const labels = utils.buildAvailabilityPayload(openTo, prevOpenTo);
-    return this.DagsterModel.forceUpdateExpertAvailability(this.expertId, labels);
   }
 
   /**
    * @method _applyChange
    * @description in cdlDown mode, call the appropriate DagsterModel force method to
    * apply the change directly to Elasticsearch, bypassing CDL/Elements (which is known
-   * to be down)
+   * to be down). Limited to the same 4 urgent action types as the unplanned-failure
+   * (forceAction) flow.
    *
    * @returns {Promise<Object>} dagster response containing the runId
    */
@@ -421,16 +366,10 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
 
     if( v.includes('hide a work') && id ) {
       return this.DagsterModel.forceUpdateCitationVisibility(this.expertId, id, false);
-    } else if( v.includes('show a work') && id ) {
-      return this.DagsterModel.forceUpdateCitationVisibility(this.expertId, id, true);
+    } else if( v.includes('reject a work') && id ) {
+      return this.DagsterModel.forceRejectCitation(this.expertId, id);
     } else if( v.includes('hide a grant') && id ) {
       return this.DagsterModel.forceUpdateGrantVisibility(this.expertId, id, false);
-    } else if( v.includes('show a grant') && id ) {
-      return this.DagsterModel.forceUpdateGrantVisibility(this.expertId, id, true);
-    } else if( v.includes('hide my profile') ) {
-      return this.DagsterModel.forceUpdateExpertVisibility(this.expertId, false);
-    } else if( v.includes('show my profile') ) {
-      return this.DagsterModel.forceUpdateExpertVisibility(this.expertId, true);
     } else if( v.includes('remove my profile') ) {
       return this.DagsterModel.forceDeleteExpert(this.expertId);
     }

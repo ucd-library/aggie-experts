@@ -189,7 +189,7 @@ router.post('/admin-update/availability',
   dagster_can_run_partition({requirePartition: false}),
   async (req, res, next) => {
   try {
-    const { expertId, elasticsearch, labelsToAddOrEdit, labelsToRemove, currentLabels, force } = req.body;
+    const { expertId, elasticsearch, labelsToAddOrEdit, labelsToRemove, currentLabels } = req.body;
     let cdl = config.experts.propogateCdlChanges === true ? 'yes' : 'no';
     if (!expertId) {
       return res.status(400).json({ error: 'expertId is required' });
@@ -197,7 +197,7 @@ router.post('/admin-update/availability',
 
     const result = await dagsterAPI.runUpdateExpertAvailability(expertId, {
       labelsToAddOrEdit, labelsToRemove, currentLabels
-    }, { elasticsearch, cdl, force: force === true });
+    }, { elasticsearch, cdl });
     res.json(result);
   } catch (error) {
     logger.error('Error running admin-update availability', error);

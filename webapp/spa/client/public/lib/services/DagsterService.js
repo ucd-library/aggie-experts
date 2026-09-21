@@ -176,7 +176,7 @@ class DagsterService extends BaseService {
     });
   }
 
-  async updateExpertVisibility(id, visible, opts = {}) {
+  async updateExpertVisibility(id, visible) {
     return this.request({
       url : `${this.adminUpdatesUrl}/expert`,
       fetchOptions : {
@@ -186,8 +186,7 @@ class DagsterService extends BaseService {
         },
         body : JSON.stringify({
           expertId : id,
-          visibility : visible ? 'yes' : 'no',
-          ...(opts.force && { force: true })
+          visibility : visible ? 'yes' : 'no'
         })
       },
       checkCached : () => null,
@@ -218,7 +217,7 @@ class DagsterService extends BaseService {
     });
   }
 
-  async updateExpertAvailability(id, labels={}, opts = {}) {
+  async updateExpertAvailability(id, labels={}) {
     return this.request({
       url : `${this.adminUpdatesUrl}/availability`,
       fetchOptions : {
@@ -230,8 +229,7 @@ class DagsterService extends BaseService {
           expertId : id,
           labelsToAddOrEdit : labels.labelsToAddOrEdit || [],
           labelsToRemove : labels.labelsToRemove || [],
-          currentLabels : labels.currentLabels || [],
-          ...(opts.force && { force: true })
+          currentLabels : labels.currentLabels || []
         })
       },
       checkCached : () => null,

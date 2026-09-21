@@ -12,18 +12,6 @@ const CHANGE_TYPE_OPTIONS = [
   'Remove my profile from Aggie Experts'
 ];
 
-const DAGSTER_DOWN_CHANGE_TYPE_OPTIONS = [
-  'Hide a work from my profile',
-  'Show a work on my profile',
-  'Hide a grant from my profile',
-  'Show a grant on my profile',
-  'Update my availability settings',
-  'Hide my profile from public view',
-  'Show my profile in public view',
-  'Remove my profile from Aggie Experts',
-  'Other'
-];
-
 export default function render() {
   return html`
     <style>
@@ -261,59 +249,6 @@ export default function render() {
         }
       }
 
-      .checkbox-group {
-        display: flex;
-        flex-direction: column;
-        gap: 0.6rem;
-      }
-
-      .checkbox-label {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.9rem;
-        font-weight: normal;
-        color: var(--color-black-80);
-        cursor: pointer;
-        margin-bottom: 0;
-      }
-
-      .checkbox-label.availability {
-        font-weight: normal;
-      }
-
-      .checkbox-label input[type="checkbox"] {
-        appearance: none;
-        -webkit-appearance: none;
-        width: 20px;
-        height: 20px;
-        min-width: 20px;
-        border: 1px solid var(--ucd-blue-70, #73ABDD);
-        background: var(--white, #FFF);
-        flex-shrink: 0;
-        cursor: pointer;
-        position: relative;
-        margin: 0;
-        margin-right: .5rem;
-      }
-
-      .checkbox-label input[type="checkbox"]:checked {
-        background: var(--ucd-blue-70, #73ABDD);
-      }
-
-      .checkbox-label input[type="checkbox"]:checked::after {
-        content: '';
-        position: absolute;
-        left: 5px;
-        top: 2px;
-        width: 6px;
-        height: 11px;
-        border: 2px solid white;
-        border-top: none;
-        border-left: none;
-        transform: rotate(45deg);
-      }
-
       .btn--primary,
       .btn--invert {
         font-size: 1rem;
@@ -389,36 +324,12 @@ export default function render() {
                 <label>What do you need changed? <span class="required">*</span></label>
                 <select .value="${this.changeType}" @change="${this._onChangeTypeInput}">
                   <option value="" ?selected="${!this.changeType}" disabled>Select a change type</option>
-                  ${(this.dagsterDown ? DAGSTER_DOWN_CHANGE_TYPE_OPTIONS : CHANGE_TYPE_OPTIONS).map(opt => html`
+                  ${CHANGE_TYPE_OPTIONS.map(opt => html`
                     <option value="${opt}" ?selected="${this.changeType === opt}">${opt}</option>
                   `)}
                 </select>
               </div>
             `}
-
-            ${this.dagsterDown && this.changeType.toLowerCase().includes('availability') ? html`
-              <div class="field">
-                <label style="margin-bottom: 1rem;">I would like to be open to: <span class="required">*</span></label>
-                <div class="checkbox-group">
-                  <label class="checkbox-label availability">
-                    <input type="checkbox" .checked="${this.collabProjects}" @change="${e => this.collabProjects = e.target.checked}">
-                    Collaborative Projects
-                  </label>
-                  <label class="checkbox-label availability">
-                    <input type="checkbox" .checked="${this.commPartner}" @change="${e => this.commPartner = e.target.checked}">
-                    Community Partnerships
-                  </label>
-                  <label class="checkbox-label availability">
-                    <input type="checkbox" .checked="${this.industProjects}" @change="${e => this.industProjects = e.target.checked}">
-                    Industry Projects
-                  </label>
-                  <label class="checkbox-label availability">
-                    <input type="checkbox" .checked="${this.mediaInterviews}" @change="${e => this.mediaInterviews = e.target.checked}">
-                    Media Interviews
-                  </label>
-                </div>
-              </div>
-            ` : ''}
 
             ${this.dagsterDown && this.searchLabel ? html`
               <div class="field">
