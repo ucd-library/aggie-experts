@@ -46,7 +46,6 @@ export default class FinApp extends Mixin(LitElement)
       hideCdlHealth : { type : Boolean },
       showCdlDownModal : { type : Boolean },
       pageExpertId : { type : String },
-      expertAvailability : { type : Object },
     }
   }
 
@@ -87,7 +86,6 @@ export default class FinApp extends Mixin(LitElement)
     this.hideCdlHealth = !(APP_CONFIG.cdlServiceDown && !APP_CONFIG.dagsterServiceDown);
     this.showCdlDownModal = false;
     this.pageExpertId = '';
-    this.expertAvailability = { collabProjects: false, commPartner: false, industProjects: false, mediaInterviews: false };
 
     this.render = render.bind(this);
     this._init404();
@@ -537,17 +535,11 @@ export default class FinApp extends Mixin(LitElement)
   }
 
   /**
-   * @method _readExpertAvailability
-   * @description read the current availability state from the app-expert element
+   * @method _readExpertState
+   * @description read the canonical expertId from the app-expert element
    */
   _readExpertState() {
     const appExpert = this.shadowRoot?.querySelector('app-expert');
-    this.expertAvailability = {
-      collabProjects: appExpert?.collabProjects || false,
-      commPartner: appExpert?.commPartner || false,
-      industProjects: appExpert?.industProjects || false,
-      mediaInterviews: appExpert?.mediaInterviews || false
-    };
     // Use the canonical expertId from app-expert (resolved from fetched data, not the URL)
     // to ensure dagster receives the ark ID regardless of what the URL contains
     if( appExpert?.expertId ) {

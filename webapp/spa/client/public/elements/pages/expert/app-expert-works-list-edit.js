@@ -584,7 +584,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
         label: 'work visibility (show)',
         onComplete: async (status, stepStats) => {
-          await utils.trackFailedUpdate(this.expertId, { type: 'work', name: this._getCitationData(this.citationId).text, action: 'show-work', stepStats });
+          await utils.trackFailedUpdate(this.expertId, { type: 'work', name: this._getCitationData(this.citationId).text, id: this.citationId, action: 'show-work', stepStats });
           this.failedUpdates = (await utils.getFailedUpdates(this.expertId)).filter(u => u.type === 'work');
           if( utils.hasCdlStepFailed(stepStats) ) {
             this.dispatchEvent(new CustomEvent("loaded", {}));
@@ -641,7 +641,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
         label: 'work favourite (remove)',
         onComplete: async (status, stepStats) => {
-          await utils.trackFailedUpdate(this.expertId, { type: 'work', name: this._getCitationData(this.citationId).text, action: 'remove-highlight', stepStats });
+          await utils.trackFailedUpdate(this.expertId, { type: 'work', name: this._getCitationData(this.citationId).text, id: this.citationId, action: 'remove-highlight', stepStats });
           this.failedUpdates = (await utils.getFailedUpdates(this.expertId)).filter(u => u.type === 'work');
           if( utils.hasCdlStepFailed(stepStats) ) {
             this.dispatchEvent(new CustomEvent("loaded", {}));
@@ -698,7 +698,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
       utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
         label: 'work favourite (add)',
         onComplete: async (status, stepStats) => {
-          await utils.trackFailedUpdate(this.expertId, { type: 'work', name: this._getCitationData(this.citationId).text, action: 'add-highlight', stepStats });
+          await utils.trackFailedUpdate(this.expertId, { type: 'work', name: this._getCitationData(this.citationId).text, id: this.citationId, action: 'add-highlight', stepStats });
           this.failedUpdates = (await utils.getFailedUpdates(this.expertId)).filter(u => u.type === 'work');
           if( utils.hasCdlStepFailed(stepStats) ) {
             this.dispatchEvent(new CustomEvent("loaded", {}));
@@ -798,15 +798,16 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
           label: 'work visibility (hide)',
           onComplete: async (status, stepStats) => {
-            await utils.trackFailedUpdate(this.expertId, { type: 'work', name: this._getCitationData(this.citationId).text, action: 'hide-work', stepStats });
+            await utils.trackFailedUpdate(this.expertId, { type: 'work', name: this._getCitationData(this.citationId).text, id: this.citationId, action: 'hide-work', stepStats });
           this.failedUpdates = (await utils.getFailedUpdates(this.expertId)).filter(u => u.type === 'work');
             if( utils.hasCdlStepFailed(stepStats) ) {
               this.dispatchEvent(new CustomEvent("loaded", {}));
                             const { text: citationText, subtext: citationSubtext } = this._getCitationData(this.citationId);
               this._showUpdateError('Work visibility could not be updated.', citationText, citationSubtext, 'Hide a work from my profile', {
                 run: () => this.DagsterModel.forceUpdateCitationVisibility(this.expertId, this.citationId, false),
-                onSuccess: () => {
-                  utils.markFailedUpdateForced(this.expertId, { type: 'work', name: citationText });
+                onSuccess: async () => {
+                  utils.markFailedUpdateForced(this.expertId, { type: 'work', name: citationText, id: this.citationId });
+                  this.failedUpdates = (await utils.getFailedUpdates(this.expertId)).filter(u => u.type === 'work');
                   this._applyCitationVisibility(this.citationId, false);
                 }
               });
@@ -851,7 +852,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
         utils.pollAdminUpdateJobs(res, runId => this.DagsterModel.getLastRunForId(runId), {
           label: 'work reject',
           onComplete: async (status, stepStats) => {
-            await utils.trackFailedUpdate(this.expertId, { type: 'work', name: this._getCitationData(this.citationId).text, action: 'hide-work', stepStats });
+            await utils.trackFailedUpdate(this.expertId, { type: 'work', name: this._getCitationData(this.citationId).text, id: this.citationId, action: 'reject-work', stepStats });
           this.failedUpdates = (await utils.getFailedUpdates(this.expertId)).filter(u => u.type === 'work');
             if( utils.hasCdlStepFailed(stepStats) ) {
               this.dispatchEvent(new CustomEvent("loaded", {}));
@@ -859,7 +860,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
               this._showUpdateError('Work could not be rejected.', citationText, citationSubtext, 'Reject a work from my profile', {
                 run: () => this.DagsterModel.forceRejectCitation(this.expertId, this.citationId),
                 onSuccess: () => {
-                  utils.markFailedUpdateForced(this.expertId, { type: 'work', name: citationText });
+                  utils.markFailedUpdateForced(this.expertId, { type: 'work', name: citationText, id: this.citationId });
                   return this._refreshWorksList();
                 }
               });
@@ -1105,7 +1106,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    * @param {Object} entry - failed update entry with type, name, action
    */
   async _dismissFailedUpdate(entry) {
-    utils.dismissFailedUpdate(this.expertId, { type: entry.type, name: entry.name, action: entry.action });
+    utils.dismissFailedUpdate(this.expertId, { type: entry.type, name: entry.name, id: entry.id, action: entry.action });
     this.failedUpdates = (await utils.getFailedUpdates(this.expertId)).filter(u => u.type === 'work');
   }
 
@@ -1116,9 +1117,7 @@ export default class AppExpertWorksListEdit extends Mixin(LitElement)
    * @param {Object} entry - failed update entry
    */
   _onInlineBannerHelp(entry) {
-    const all = [...(this.citationsDisplayed || []), ...(this.featuredCitations || [])];
-    const c = all.find(c => (c.title || c['container-title']) === entry.name);
-    const relId = c?.relatedBy?.[0]?.['@id'];
+    const relId = entry.id;
     const { text, subtext } = relId ? this._getCitationData(relId) : { text: entry.name, subtext: '' };
     this.requestChangeCitation = text;
     this.requestChangeCitationSubtext = subtext;

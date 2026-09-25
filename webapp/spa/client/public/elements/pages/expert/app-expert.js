@@ -111,6 +111,12 @@ export default class AppExpert extends Mixin(LitElement)
 
     let expertId = e.location.pathname.substr(1);
 
+    // Always re-read failed-update banners on arrival, even when nothing below warrants a
+    // full expert re-fetch - a failed update tracked on the edit page (e.g. a CDL failure
+    // with no eligible force action) doesn't set modifiedWorks/modifiedGrants, since no
+    // visible data actually changed, so it would otherwise never trigger the checks below.
+    if( expertId ) this.failedUpdates = await utils.getFailedUpdates(expertId);
+
     if( APP_CONFIG.user?.loggedIn && (APP_CONFIG.user.expertId === expertId || this.isAdmin) ) {
       await this._checkDagsterHealthLoop();
 
@@ -608,7 +614,9 @@ export default class AppExpert extends Mixin(LitElement)
                 run: () => this.DagsterModel.forceDeleteExpert(this.expertId),
                 onSuccess: () => {
                   utils.markFailedUpdateForced(this.expertId, { type: 'expert', name: '' });
-                  window.location.replace('/auth/logout');
+                  // returned URL is only navigated to once the user dismisses the modal's
+                  // success screen (see app-request-change-modal.js's _onCancel)
+                  return '/auth/logout';
                 }
               });
               return;
@@ -773,7 +781,7 @@ export default class AppExpert extends Mixin(LitElement)
    * @param {Object} entry - the failed update entry to dismiss (must have type, name, action)
    */
   async _dismissFailedUpdate(entry) {
-    utils.dismissFailedUpdate(this.expertId, { type: entry.type, name: entry.name, action: entry.action });
+    utils.dismissFailedUpdate(this.expertId, { type: entry.type, name: entry.name, id: entry.id, action: entry.action });
     this.failedUpdates = await utils.getFailedUpdates(this.expertId);
   }
 

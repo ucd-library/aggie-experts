@@ -410,15 +410,23 @@ return html`
                 @reject-work="${this._rejectWork}"
                 @select-checked="${this._selectChecked}">
               </edit-work-result-row>
-              ${this.canEditDirectly ? (this.failedUpdates || []).filter(u => u.name === (cite.title || cite['container-title'] || '')).map(entry => {
-                const isInfoOnly = !entry.cdlFailed && entry.esFailed;
+              ${this.canEditDirectly ? (this.failedUpdates || []).filter(u => u.id === cite.relatedBy?.[0]?.['@id']).map(entry => {
+                const isForced = entry.cdlFailed && entry.forced;
+                const isInfoOnly = (!entry.cdlFailed && entry.esFailed) || isForced;
+                const isForceEligible = utils.isForceEligibleAction(entry.action);
                 return html`
                   <div class="inline-banner-wrapper">
                     <app-status-banner
                       type="${isInfoOnly ? 'info' : 'error'}"
                       icon="${isInfoOnly ? 'ucdlib-experts:fa-check-circle' : 'ucdlib-experts:fa-exclamation-triangle'}"
-                      message="${isInfoOnly ? (utils.FAILED_UPDATE_SUCCESS_LABELS[entry.action] || entry.action) + '. Your profile will update at the next data refresh.' : (utils.FAILED_UPDATE_ERROR_LABELS[entry.action] || entry.action) + '. Try again or'}"
-                      ?show-help="${!isInfoOnly}"
+                      message="${isForced
+                        ? (utils.FAILED_UPDATE_SUCCESS_LABELS[entry.action] || entry.action) + '. ' + utils.FAILED_UPDATE_FORCED_NOTE
+                        : isInfoOnly
+                          ? (utils.FAILED_UPDATE_SUCCESS_LABELS[entry.action] || entry.action) + '. Your profile will update at the next data refresh.'
+                          : isForceEligible
+                            ? (utils.FAILED_UPDATE_ERROR_LABELS[entry.action] || entry.action) + '. Try again or'
+                            : (utils.FAILED_UPDATE_ERROR_LABELS[entry.action] || entry.action) + '. Please try again later.'}"
+                      ?show-help="${!isInfoOnly && isForceEligible}"
                       dismissible
                       @dismiss=${() => this._dismissFailedUpdate(entry)}
                       @help=${() => this._onInlineBannerHelp(entry)}>
@@ -468,15 +476,23 @@ return html`
             @reject-work="${this._rejectWork}"
             @select-checked="${this._selectChecked}">
           </edit-work-result-row>
-          ${this.canEditDirectly ? (this.failedUpdates || []).filter(u => u.name === (cite.title || cite['container-title'] || '')).map(entry => {
-            const isInfoOnly = !entry.cdlFailed && entry.esFailed;
+          ${this.canEditDirectly ? (this.failedUpdates || []).filter(u => u.id === cite.relatedBy?.[0]?.['@id']).map(entry => {
+            const isForced = entry.cdlFailed && entry.forced;
+            const isInfoOnly = (!entry.cdlFailed && entry.esFailed) || isForced;
+            const isForceEligible = utils.isForceEligibleAction(entry.action);
             return html`
               <div class="inline-banner-wrapper">
                 <app-status-banner
                   type="${isInfoOnly ? 'info' : 'error'}"
                   icon="${isInfoOnly ? 'ucdlib-experts:fa-check-circle' : 'ucdlib-experts:fa-exclamation-triangle'}"
-                  message="${isInfoOnly ? (utils.FAILED_UPDATE_SUCCESS_LABELS[entry.action] || entry.action) + '. Your profile will update at the next data refresh.' : (utils.FAILED_UPDATE_ERROR_LABELS[entry.action] || entry.action) + '. Try again or'}"
-                  ?show-help="${!isInfoOnly}"
+                  message="${isForced
+                    ? (utils.FAILED_UPDATE_SUCCESS_LABELS[entry.action] || entry.action) + '. ' + utils.FAILED_UPDATE_FORCED_NOTE
+                    : isInfoOnly
+                      ? (utils.FAILED_UPDATE_SUCCESS_LABELS[entry.action] || entry.action) + '. Your profile will update at the next data refresh.'
+                      : isForceEligible
+                        ? (utils.FAILED_UPDATE_ERROR_LABELS[entry.action] || entry.action) + '. Try again or'
+                        : (utils.FAILED_UPDATE_ERROR_LABELS[entry.action] || entry.action) + '. Please try again later.'}"
+                  ?show-help="${!isInfoOnly && isForceEligible}"
                   dismissible
                   @dismiss=${() => this._dismissFailedUpdate(entry)}
                   @help=${() => this._onInlineBannerHelp(entry)}>

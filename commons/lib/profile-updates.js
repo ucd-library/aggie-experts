@@ -255,7 +255,7 @@ async function patchExpertVisibility({ expertModel, patch, expertId, logger, con
 	return patchExpertEsVisibility({ expertModel, patch, expertId, logger, config });
 }
 
-async function deleteExpert({ expertModel, expertId, logger, config }) {
+async function deleteExpert({ expertModel, expertId, logger, config, doEs = true }) {
 	logger.info(`expert.delete(${expertId})`);
 
 	// Delete Elasticsearch document
@@ -268,72 +268,74 @@ async function deleteExpert({ expertModel, expertId, logger, config }) {
 		return 404;
 	}
 
-	// update both public/latest aliases to keep them in sync
-	try {
-		await expertModel.client.delete({
-			id: expertId,
-			index: 'experts-' + config.elasticsearch.aliases.stage
-		});
+	if (doEs) {
+		// update both public/latest aliases to keep them in sync
+		try {
+			await expertModel.client.delete({
+				id: expertId,
+				index: 'experts-' + config.elasticsearch.aliases.stage
+			});
 
-		// if stage/current point to the same index, could fail in second delete
-		await expertModel.client.delete({
-			id: expertId,
-			index: 'experts-' + config.elasticsearch.aliases.current
-		});
-	} catch (e) {
-		logger.warn({
-			expertId,
-			index: 'experts-' + config.elasticsearch.aliases.current,
-			error: e.message
-		}, 'expert.delete second alias delete failed; continuing');
-	}
+			// if stage/current point to the same index, could fail in second delete
+			await expertModel.client.delete({
+				id: expertId,
+				index: 'experts-' + config.elasticsearch.aliases.current
+			});
+		} catch (e) {
+			logger.warn({
+				expertId,
+				index: 'experts-' + config.elasticsearch.aliases.current,
+				error: e.message
+			}, 'expert.delete second alias delete failed; continuing');
+		}
 
-	// also update any visible works/grants for this expert
-	const visibleWorks = [];
-	const visibleGrants = [];
-	for (const node of expert['@graph']) {
-		if (node['@type'].includes('Work')) {
-			const related = node.relatedBy?.find(r => r?.relates?.includes(expertId) && r['is-visible']);
-			if (related && related['@id']) {
-				visibleWorks.push({
-					id: node['@id'],
-					relationshipId: related['@id']
-				});
-			}
-		} else if (node['@type'].includes('Grant')) {
-			const related = node.relatedBy?.find(r => r?.relates?.includes(expertId) && r['is-visible']);
-			if (related && related['@id']) {
-				visibleGrants.push({
-					id: node['@id'],
-					relationshipId: related['@id']
-				});
+		// also update any visible works/grants for this expert
+		const visibleWorks = [];
+		const visibleGrants = [];
+		for (const node of expert['@graph']) {
+			if (node['@type'].includes('Work')) {
+				const related = node.relatedBy?.find(r => r?.relates?.includes(expertId) && r['is-visible']);
+				if (related && related['@id']) {
+					visibleWorks.push({
+						id: node['@id'],
+						relationshipId: related['@id']
+					});
+				}
+			} else if (node['@type'].includes('Grant')) {
+				const related = node.relatedBy?.find(r => r?.relates?.includes(expertId) && r['is-visible']);
+				if (related && related['@id']) {
+					visibleGrants.push({
+						id: node['@id'],
+						relationshipId: related['@id']
+					});
+				}
 			}
 		}
-	}
 
-	for (const work of visibleWorks) {
-		await patchWorkDocumentVisibility({
-			expertModel,
-			workId: work.id,
-			patch: { visible: false },
-			rid: work.relationshipId,
-			expertId,
-			expertDoc: expert,
-			logger,
-			config
-		});
-	}
+		for (const work of visibleWorks) {
+			await patchWorkDocumentVisibility({
+				expertModel,
+				workId: work.id,
+				patch: { visible: false },
+				rid: work.relationshipId,
+				expertId,
+				expertDoc: expert,
+				logger,
+				config
+			});
+		}
 
-	for (const grant of visibleGrants) {
-		await patchGrantRoleVisibility({
-			expertModel,
-			grantId: grant.id,
-			patch: { visible: false },
-			rid: grant.relationshipId,
-			expertId,
-			logger,
-			config
-		});
+		for (const grant of visibleGrants) {
+			await patchGrantRoleVisibility({
+				expertModel,
+				grantId: grant.id,
+				patch: { visible: false },
+				rid: grant.relationshipId,
+				expertId,
+				logger,
+				config
+			});
+		}
 	}
 
 	if (config.experts.cdl.expert.propagate) {
@@ -973,7 +975,7 @@ async function patchWorkVisibility({ expertModel, patch, expertId, logger, confi
 	}
 }
 
-async function deleteAuthorship({ expertModel, id, expertId, logger, config }) {
+async function deleteAuthorship({ expertModel, id, expertId, logger, config, doEs = true }) {
 	logger.info(`Deleting ${id}`);
 
 	let node;
@@ -987,20 +989,22 @@ async function deleteAuthorship({ expertModel, id, expertId, logger, config }) {
 	node = getNodeByRelatedId(expert, rid);
 	objectId = node['@id'].replace('ark:/87287/d7mh2m/publication/', '');
 
-	// update both public/latest to keep them in sync
-	await deleteGraphNode(expertModel, expertId, node, 'experts-' + config.elasticsearch.aliases.stage);
-	await deleteGraphNode(expertModel, expertId, node, 'experts-' + config.elasticsearch.aliases.current);
+	if (doEs) {
+		// update both public/latest to keep them in sync
+		await deleteGraphNode(expertModel, expertId, node, 'experts-' + config.elasticsearch.aliases.stage);
+		await deleteGraphNode(expertModel, expertId, node, 'experts-' + config.elasticsearch.aliases.current);
 
-	await patchWorkDocumentVisibility({
-		expertModel,
-		workId: node['@id'],
-		patch: { visible: false },
-		rid,
-		expertId,
-		expertDoc: expert,
-		logger,
-		config
-	});
+		await patchWorkDocumentVisibility({
+			expertModel,
+			workId: node['@id'],
+			patch: { visible: false },
+			rid,
+			expertId,
+			expertDoc: expert,
+			logger,
+			config
+		});
+	}
 
 	if (config.experts.cdl.authorship.propagate) {
 		const linkId = rid.replace('ark:/87287/d7mh2m/relationship/', '');
@@ -1122,12 +1126,34 @@ async function patchExpertPgVisibility({ pgClient, patch, expertId, logger }) {
 	);
 }
 
+/**
+ * @function deleteExpertPg
+ * @description Delete an expert's row from postgres. Work/grant role rows that reference
+ * this expert are not deleted - the schema's ON DELETE SET NULL just orphans their
+ * expert_id, matching how the ES side leaves work/grant documents in place and only
+ * patches this expert out of their visible-experts list.
+ *
+ * @param {Object} opts
+ * @param {Object} opts.pgClient - Connected PgClient instance
+ * @param {string} opts.expertId - Expert ID (e.g. 'expert/abc123')
+ * @param {Object} opts.logger
+ * @returns {Promise<void>}
+ */
+async function deleteExpertPg({ pgClient, expertId, logger }) {
+	const pgExpertId = normalizeExpertIdForPg(expertId);
+
+	logger.info({ expertId: pgExpertId }, 'deleteExpertPg');
+
+	await pgClient.query(`DELETE FROM api."user" WHERE expert_id = $1`, [pgExpertId]);
+}
+
 export {
   patchExpertEsVisibility,
   patchExpertCdlVisibility,
   patchExpertVisibility,
   patchExpertPgVisibility,
   deleteExpert,
+  deleteExpertPg,
   patchExpertAvailability,
   patchExpertAvailabilityEs,
   patchExpertAvailabilityCdl,

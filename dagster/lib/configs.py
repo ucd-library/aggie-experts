@@ -103,6 +103,7 @@ class UpdateScholarlyRecordPgConfig(Config):
 class UpdateExpertPgConfig(Config):
     expert_id: str = Field(..., description="Expert ID (e.g. expert/abc123)")
     visibility: str | None = Field(default=None, description="Set visibility (yes or no)")
+    delete: str | None = Field(default=None, description="Delete the expert record (yes or no)")
 
 
 class SlackNotifyConfig(Config):

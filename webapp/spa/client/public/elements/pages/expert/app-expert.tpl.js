@@ -975,11 +975,10 @@ return html`
     </div>
 
     ${(() => {
-      const FORCED_NOTE = "The Aggie Experts team has been notified and will make this change when the service is restored. We'll let you know when the update is complete.";
-      const isInfoOnly = u => !u.cdlFailed && u.esFailed;
+      const isInfoOnly = u => (!u.cdlFailed && u.esFailed) || (u.cdlFailed && u.forced);
       const toListItems = entries => entries.map(u => ({
         label: u.name,
-        subtext: (utils.FAILED_UPDATE_SHORT_LABELS[u.action] || u.action) + (u.forced ? ' ' + FORCED_NOTE : '')
+        subtext: (utils.FAILED_UPDATE_SHORT_LABELS[u.action] || u.action) + (u.forced ? ' ' + utils.FAILED_UPDATE_FORCED_NOTE : '')
       }));
 
       const groups = [

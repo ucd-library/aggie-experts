@@ -17,7 +17,6 @@ from .jobs import (
     update_expert_availability_job,
     force_update_scholarly_record_job,
     force_update_expert_job,
-    force_update_expert_availability_job,
 )
 
 
@@ -175,7 +174,7 @@ def etl_notify_and_continue(context: dg.SensorEvaluationContext):
     description="Send a Slack notification when an admin update job (normal or forced, scholarly record, expert, or availability) fails.",
     monitored_jobs=[
         update_scholarly_record_job, update_expert_job, update_expert_availability_job,
-        force_update_scholarly_record_job, force_update_expert_job, force_update_expert_availability_job,
+        force_update_scholarly_record_job, force_update_expert_job,
     ],
     minimum_interval_seconds=30,
 )
