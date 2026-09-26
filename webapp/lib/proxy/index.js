@@ -6,6 +6,7 @@ const auth = require('./oidc.js');
 const httpProxy = require('http-proxy');
 const keycloak = require('../keycloak.js');
 const cookieParser = require('cookie-parser');
+const requestLog = require('./request-log.js');
 
 logger.debug('Initializing gateway proxy');
 
@@ -34,6 +35,8 @@ async function start() {
   await auth(app);
 
   app.use(keycloak.setUser);
+
+  app.use('/api', requestLog());
 
   app.use('/api', (req, res) => {
     proxy.web(req, res, {

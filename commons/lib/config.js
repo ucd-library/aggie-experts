@@ -205,13 +205,15 @@ const config = {
     user : env.POSTGRES_CLIENT_USER || env.POSTGRES_USER || 'postgres',
     password : env.POSTGRES_CLIENT_PASSWORD || env.POSTGRES_PASSWORD || 'postgres',
     database : env.POSTGRES_CLIENT_DB || env.POSTGRES_DB || 'postgres',
-    // Two schema files now: api/ (user, grant, work, etc. consumed by webapp
-    // endpoints) and reporting/ (ETL run observability tables and views).
-    // Run api first — its tables exist before reporting/schema.sql's views
-    // reference them via etl_reporting.get_api_users().
+    // Three schema files now: api/ (user, grant, work, etc. consumed by webapp
+    // endpoints), reporting/ (ETL run observability tables and views), and
+    // api-reporting/ (live API request-usage tracking, independent of the
+    // other two). Run api first — its tables exist before reporting/schema.sql's
+    // views reference them via etl_reporting.get_api_users().
     schemaFiles : !isBrowser ? [
       path.resolve(scriptDir, '../../harvest/lib/api/schema.sql'),
-      path.resolve(scriptDir, '../../harvest/lib/reporting/schema.sql')
+      path.resolve(scriptDir, '../../harvest/lib/reporting/schema.sql'),
+      path.resolve(scriptDir, '../../harvest/lib/api-reporting/schema.sql')
     ] : null,
   },
 
