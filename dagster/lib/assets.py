@@ -1,8 +1,6 @@
 """
 Dagster asset definitions for the Aggie Experts ETL pipeline.
 """
-import subprocess
-
 import dagster as dg
 from dagster import AssetExecutionContext, AutoMaterializePolicy
 
@@ -11,7 +9,6 @@ from .configs import (
     FetchUserListConfig,
     LoadUserConfig,
     YearWeekConfig,
-    PurgeYearWeekConfig,
     PurgeStaleUserPartitionsConfig,
     NotifyConfig,
     SetAliasConfig,
@@ -539,28 +536,6 @@ def purge_stale_user_partitions(context: AssetExecutionContext, config: PurgeSta
         "dry_run": not config.force,
     })
     return None
-
-
-@dg.asset(
-    code_version=CODE_VERSION,
-    group_name="cleanup",
-    tags={
-        "dagster/retries": "0",
-        "dagster/max_runtime": str(60 * 60 * 4)  # 4 hour max runtime
-    }
-)
-def purge_year_week_cask_files(context: AssetExecutionContext, config: PurgeYearWeekConfig) -> None:
-    """Purge all files from CaskFS before a given year-week.  Defaults to 5 weeks ago if year-week not provided."""
-    year_week = config.year_week
-    if not year_week:
-        year_week = subprocess.check_output(
-            ["experts", "harvest", "year-week", "--weeks-ago", "5"], text=True
-        ).strip()
-
-    print(f"Purging CaskFS files for year-week {year_week}")
-    exec(["cask", "rm", "-d", f"/weekly/{year_week}"], no_json_parse=True)
-    return None
-
 
 @dg.asset(
     code_version=CODE_VERSION,

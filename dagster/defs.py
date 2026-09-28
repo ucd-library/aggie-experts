@@ -5,6 +5,7 @@ Submodule layout (all files live alongside this one in the dagster/ directory):
   configs.py  - Config schemas and partition definitions
   utils.py    - DB connection, constants, exec() helper, gateway notification helper
   assets.py   - All @dg.asset definitions
+  ops.py      - Op/graph definitions for fan-out style jobs (e.g. dynamic mapping), exposed as graph assets
   jobs.py     - All dg.define_asset_job definitions
   sensors.py  - All @dg.sensor definitions
   schedules.py - All dg.ScheduleDefinition instances
@@ -36,7 +37,6 @@ from lib.assets import (
     exec_weekly_etl,
     check_iam_lapsed_users,
     purge_user_cask_files,
-    purge_year_week_cask_files,
     purge_dagster_runs,
     purge_reporting_db,
     update_scholarly_record_es,
@@ -50,6 +50,7 @@ from lib.assets import (
     send_slack_notification,
     purge_stale_user_partitions,
 )
+from lib.ops import purge_year_week_cask_files
 from lib.jobs import (
     etl_users_job,
     extract_users_job,

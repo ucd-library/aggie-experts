@@ -16,7 +16,6 @@ from .assets import (
     purge_dagster_runs,
     purge_reporting_db,
     purge_stale_user_partitions,
-    purge_year_week_cask_files,
     update_scholarly_record_es,
     update_scholarly_record_cdl,
     update_scholarly_record_postgres,
@@ -26,6 +25,7 @@ from .assets import (
     update_expert_availability_es,
     update_expert_availability_cdl,
 )
+from .ops import purge_year_week_cask_files
 
 
 # ---------------------------------------------------------------------------
