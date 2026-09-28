@@ -8,9 +8,10 @@ class DagsterService extends BaseService {
     this.store = DagsterStore;
 
     this.baseUrl = '/api/harvest';
+    this.adminUpdatesUrl = '/api/harvest/admin-update';
   }
 
-  async runJobPartition(jobName, partitionName) {
+  async runJobPartition(jobName, partitionName, opts = {}) {
     return this.request({
       url : `${this.baseUrl}/run-job-partition`,
       fetchOptions : {
@@ -18,7 +19,11 @@ class DagsterService extends BaseService {
         headers : {
           'Content-Type' : 'application/json'
         },
-        body : JSON.stringify({ partition: partitionName, jobName })
+        body : JSON.stringify({
+          partition: partitionName,
+          jobName,
+          ...(opts.priority != null && { priority: opts.priority })
+        })
       },
       checkCached : () => null,
       onLoading : null,
@@ -43,7 +48,7 @@ class DagsterService extends BaseService {
     });
   }
 
-  async getLastRunForPartition(jobName, partitionName) {
+  async getLastRunForPartition(jobName, partitionName, opts = {}) {
     return this.request({
       url : `${this.baseUrl}/last-runs-for-partition`,
       fetchOptions : {
@@ -51,7 +56,181 @@ class DagsterService extends BaseService {
         headers : {
           'Content-Type' : 'application/json'
         },
-        body : JSON.stringify({ partition: partitionName, jobName })
+        body : JSON.stringify({
+          partition: partitionName,
+          jobName,
+          ...(opts.statuses && { statuses: opts.statuses })
+        })
+      },
+      checkCached : () => null,
+      onLoading : null,
+      onLoad : null,
+      onError : null
+    });
+  }
+
+  async getHealth() {
+    return this.request({
+      url : `${this.baseUrl}/health`,
+      fetchOptions : {
+        method : 'GET',
+        headers : {
+          'Content-Type' : 'application/json'
+        }
+      },
+      checkCached : () => null,
+      onLoading : null,
+      onLoad : null,
+      onError : null
+    });
+  }
+
+  async updateCitationVisibility(id, citationId, visible, opts = {}) {
+    return this.request({
+      url : `${this.adminUpdatesUrl}/scholarly-record`,
+      fetchOptions : {
+        method : 'POST',
+        headers : {
+          'Content-Type' : 'application/json'
+        },
+        body : JSON.stringify({
+          expertId : id,
+          relationshipId : citationId,
+          type : 'work',
+          visibility : visible ? 'yes' : 'no',
+          ...(opts.force && { force: true })
+        })
+      },
+      checkCached : () => null,
+      onLoading : null,
+      onLoad : null,
+      onError : null
+    });
+  }
+
+  async rejectCitation(id, citationId, opts = {}) {
+    return this.request({
+      url : `${this.adminUpdatesUrl}/scholarly-record`,
+      fetchOptions : {
+        method : 'POST',
+        headers : {
+          'Content-Type' : 'application/json'
+        },
+        body : JSON.stringify({
+          expertId : id,
+          relationshipId : citationId,
+          type : 'work',
+          reject : 'yes',
+          ...(opts.force && { force: true })
+        })
+      },
+      checkCached : () => null,
+      onLoading : null,
+      onLoad : null,
+      onError : null
+    });
+  }
+
+  async updateCitationFavourite(id, citationId, favourite) {
+    return this.request({
+      url : `${this.adminUpdatesUrl}/scholarly-record`,
+      fetchOptions : {
+        method : 'POST',
+        headers : {
+          'Content-Type' : 'application/json'
+        },
+        body : JSON.stringify({
+          expertId : id,
+          relationshipId : citationId,
+          type : 'work',
+          favorite : favourite ? 'yes' : 'no'
+        })
+      },
+      checkCached : () => null,
+      onLoading : null,
+      onLoad : null,
+      onError : null
+    });
+  }
+
+  async updateGrantVisibility(id, grantId, visible, opts = {}) {
+    return this.request({
+      url : `${this.adminUpdatesUrl}/scholarly-record`,
+      fetchOptions : {
+        method : 'POST',
+        headers : {
+          'Content-Type' : 'application/json'
+        },
+        body : JSON.stringify({
+          expertId : id,
+          relationshipId : grantId,
+          type : 'grant',
+          visibility : visible ? 'yes' : 'no',
+          ...(opts.force && { force: true })
+        })
+      },
+      checkCached : () => null,
+      onLoading : null,
+      onLoad : null,
+      onError : null
+    });
+  }
+
+  async updateExpertVisibility(id, visible) {
+    return this.request({
+      url : `${this.adminUpdatesUrl}/expert`,
+      fetchOptions : {
+        method : 'POST',
+        headers : {
+          'Content-Type' : 'application/json'
+        },
+        body : JSON.stringify({
+          expertId : id,
+          visibility : visible ? 'yes' : 'no'
+        })
+      },
+      checkCached : () => null,
+      onLoading : null,
+      onLoad : null,
+      onError : null
+    });
+  }
+
+  async deleteExpert(id, opts = {}) {
+    return this.request({
+      url : `${this.adminUpdatesUrl}/expert`,
+      fetchOptions : {
+        method : 'POST',
+        headers : {
+          'Content-Type' : 'application/json'
+        },
+        body : JSON.stringify({
+          expertId : id,
+          delete : 'yes',
+          ...(opts.force && { force: true })
+        })
+      },
+      checkCached : () => null,
+      onLoading : null,
+      onLoad : null,
+      onError : null
+    });
+  }
+
+  async updateExpertAvailability(id, labels={}) {
+    return this.request({
+      url : `${this.adminUpdatesUrl}/availability`,
+      fetchOptions : {
+        method : 'POST',
+        headers : {
+          'Content-Type' : 'application/json'
+        },
+        body : JSON.stringify({
+          expertId : id,
+          labelsToAddOrEdit : labels.labelsToAddOrEdit || [],
+          labelsToRemove : labels.labelsToRemove || [],
+          currentLabels : labels.currentLabels || []
+        })
       },
       checkCached : () => null,
       onLoading : null,

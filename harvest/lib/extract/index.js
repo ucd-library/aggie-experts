@@ -28,6 +28,7 @@ async function run(options={}) {
   // const iamClient = new IamClient();
   let iamResp;
   let responses = [];
+  let lastError;
   for( let opt of IAMLookupOptions ) {
     try {
       iamResp = await iamClient.profile(opt, {
@@ -39,10 +40,16 @@ async function run(options={}) {
         break; // exit loop if we got a valid response
       }
     } catch (err) {
-      // TODO: we should probably distinguish between "not found" errors and other types of errors here, 
-      // unexpected errors need to throw the error so it can be retried, while "not found" errors should be handled gracefully and not retried.
+      lastError = err;
       logger.error(`Error fetching IAM profile with options ${JSON.stringify(opt)}:`, err);
     }
+  }
+
+  if( responses.length === 0 && lastError ) {
+    // every lookup attempt failed outright (infra/network error) rather than IAM
+    // actually returning a definitive "not found" - rethrow so this run is recorded
+    // as failed and can be retried, instead of silently recording a false notFound
+    throw lastError;
   }
 
   let notFound = true;

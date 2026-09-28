@@ -89,6 +89,8 @@ module.exports = async (app) => {
         faqUseGcs : config.client.faqUseGcs,
         faqMarkdownUrl : config.client.faqMarkdownUrl,
         dagster : config.client.dagster,
+        cdlServiceDown : config.client.cdlServiceDown,
+        dagsterServiceDown : config.client.dagsterServiceDown,
         env : config.client.env,
         enableGA4Stats : config.client.enableGA4Stats,
         gaId : config.client.gaId,

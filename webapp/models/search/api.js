@@ -30,7 +30,7 @@ router.get(
 
     // if the user is not logged in, we need to set the default
     if (params.size > 100) {
-      res.status(400).json({ error: 'Size exceeds limit' });
+      return res.status(400).json({ error: 'Size exceeds limit' });
     }
 
     if (req?.query.availability) {
@@ -67,7 +67,7 @@ router.get(
     }
     params.hasDate = !!(params.dateFrom || params.dateTo);
     if ( ! params.q ) {
-      res.status(400).json({ error: 'Missing required query parameter "q"' });
+      return res.status(400).json({ error: 'Missing required query parameter "q"' });
     }
 
     let typeToIndex = {

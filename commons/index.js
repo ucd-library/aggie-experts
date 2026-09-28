@@ -12,6 +12,26 @@ import { getYearWeek, getTodaysDate, isPlainDate, parseYearWeek } from './lib/ye
 import ElementsClient from './lib/elements-client.js';
 import ExpertsKcAdminClient from './lib/keycloak-admin.js';
 import xmlToJson from './lib/xml-to-json.js';
+import {
+  patchExpertVisibility,
+  patchExpertEsVisibility,
+  patchExpertCdlVisibility,
+  patchExpertPgVisibility,
+  deleteExpert,
+  deleteExpertPg,
+  patchExpertAvailability,
+  patchExpertAvailabilityEs,
+  patchExpertAvailabilityCdl,
+  patchGrantVisibility,
+  patchGrantEsVisibility,
+  patchGrantCdlVisibility,
+  patchGrantPgVisibility,
+  patchWorkVisibility,
+  patchWorkEsVisibility,
+  patchWorkCdlVisibility,
+  patchWorkPgVisibility,
+  deleteAuthorship
+} from './lib/profile-updates.js';
 
 // dept-utils is data-injected (see commons/lib/dept-utils.js). Server-side callers
 // don't carry the ORG_LOOKUP table around, so bind it here to preserve the original
@@ -40,5 +60,23 @@ export {
   getTodaysDate,
   isPlainDate,
   parseYearWeek,
-  xmlToJson
+  xmlToJson,
+  patchExpertVisibility,
+  patchExpertEsVisibility,
+  patchExpertCdlVisibility,
+  patchExpertPgVisibility,
+  deleteExpert,
+  deleteExpertPg,
+  patchExpertAvailability,
+  patchExpertAvailabilityEs,
+  patchExpertAvailabilityCdl,
+  patchGrantVisibility,
+  patchGrantEsVisibility,
+  patchGrantCdlVisibility,
+  patchGrantPgVisibility,
+  patchWorkVisibility,
+  patchWorkEsVisibility,
+  patchWorkCdlVisibility,
+  patchWorkPgVisibility,
+  deleteAuthorship
 };

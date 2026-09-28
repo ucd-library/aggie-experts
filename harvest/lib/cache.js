@@ -359,7 +359,8 @@ class FsCache {
       await this.caskFs.deleteDirectory({
         directory: assetPath,
         requestor: this.caskRequestor,
-        softDelete: opts.softDelete || false
+        softDelete: opts.softDelete || false,
+        ignoreMissing: true
       });
       return;
     }
@@ -367,7 +368,8 @@ class FsCache {
     await this.caskFs.deleteFile({
       filePath: assetPath,
       requestor: this.caskRequestor,
-      softDelete: opts.softDelete || false
+      softDelete: opts.softDelete || false,
+      ignoreMissing: true
     });
   }
 

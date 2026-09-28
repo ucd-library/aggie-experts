@@ -72,10 +72,14 @@ async function fetchSitefarmPostgresExperts(expertIds, modifiedSince) {
        u.research_interests,
        u.contact_info,
        u.expert_raw_payload,
-       u.last_seen_cdl
+       MAX(r.last_seen_cdl) AS last_seen_cdl
      FROM ${schema}."user" u
+     LEFT JOIN etl_reporting."user" r ON r.expert_id = u.expert_id
      WHERE u.expert_id = ANY($1::text[])
-       AND ($2::date IS NULL OR u.last_seen_cdl::date >= $2::date)`,
+       AND ($2::date IS NULL OR r.last_seen_cdl::date >= $2::date)
+     GROUP BY u.expert_id, u.display_name, u.orcid_id, u.researcher_id,
+              u.scopus_ids, u.overview, u.research_interests, u.contact_info,
+              u.expert_raw_payload`,
     [ids, modifiedSince || null]
   );
 
