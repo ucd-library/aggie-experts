@@ -87,6 +87,20 @@ update_expert_availability_job = dg.define_asset_job(
     tags={"dagster/priority": "2"},
 )
 
+force_update_scholarly_record_job = dg.define_asset_job(
+    name="force_update_scholarly_record_job",
+    description="Force-update a work or grant record in Elasticsearch and Postgres only, bypassing CDL/Elements.",
+    selection=dg.AssetSelection.assets(update_scholarly_record_es, update_scholarly_record_postgres),
+    tags={"dagster/priority": "2"},
+)
+
+force_update_expert_job = dg.define_asset_job(
+    name="force_update_expert_job",
+    description="Force-update or delete an expert record in Elasticsearch and Postgres only, bypassing CDL/Elements.",
+    selection=dg.AssetSelection.assets(update_expert_es, update_expert_postgres),
+    tags={"dagster/priority": "2"},
+)
+
 
 post_etl_job = dg.define_asset_job(
     name="post_etl_job",

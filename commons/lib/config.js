@@ -328,6 +328,11 @@ const config = {
     stdSort: (env.EXPERTS_STD_SORT === 'true')
   },
 
+  slack : {
+    adminNotifyMentions : (env.SLACK_ADMIN_NOTIFY_MENTIONS || '')
+      .split(',').map(s => s.trim()).filter(Boolean)
+  },
+
   dagster : {
     host : env.DAGSTER_HOST || 'http://dagster-ui:3000/dagster',
     graphqlPath : env.DAGSTER_GRAPHQL_PATH || '/graphql',

@@ -103,6 +103,7 @@ class UpdateScholarlyRecordPgConfig(Config):
 class UpdateExpertPgConfig(Config):
     expert_id: str = Field(..., description="Expert ID (e.g. expert/abc123)")
     visibility: str | None = Field(default=None, description="Set visibility (yes or no)")
+    delete: str | None = Field(default=None, description="Delete the expert record (yes or no)")
 
 
 class SlackNotifyConfig(Config):
@@ -110,6 +111,7 @@ class SlackNotifyConfig(Config):
     message: str = Field('', description="Message body")
     severity: str = Field('info', description="Severity level: info, warning, or error")
     source: str = Field('dagster', description="Source label shown in the notification")
+    mentions: list[str] = Field(default_factory=list, description="Slack member IDs to @mention")
 
 
 class PurgeStaleUserPartitionsConfig(Config):

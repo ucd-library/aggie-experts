@@ -23,16 +23,21 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
       itemSubtext: { type: String },
       itemLabel: { type: String },
       changeType: { type: String },
+      /**
+       * @property {Object} forceAction - when set (an unplanned CDL-outage failure with a
+       * captured replay action), submitting this form runs forceAction.run() (the
+       * CDL-bypass job for the specific item that failed), polls it to completion, and
+       * on success calls forceAction.onSuccess() to update the underlying page. Distinct
+       * from cdlDown/dagsterDown, which are for the proactive "known outage" banner flow
+       * and use a generic item picker instead of a specific captured action.
+       * Shape: { run: () => Promise, onSuccess: () => void|Promise }
+       */
+      forceAction: { type: Object },
       searchQuery: { type: String },
       searchLabel: { type: String },
       searchItems: { type: Array },
       searchItemsLoading: { type: Boolean },
       selectedItem: { type: Object },
-      initialAvailability: { type: Object },
-      collabProjects: { type: Boolean },
-      commPartner: { type: Boolean },
-      industProjects: { type: Boolean },
-      mediaInterviews: { type: Boolean },
       additionalNotes: { type: String },
       submitting: { type: Boolean },
       applying: { type: Boolean },
@@ -57,21 +62,22 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
     this.itemSubtext = '';
     this.itemLabel = 'Item';
     this.changeType = '';
+    this.forceAction = null;
     this.searchQuery = '';
     this.searchLabel = '';
     this.searchItems = [];
     this.searchItemsLoading = false;
     this.selectedItem = null;
-    this.initialAvailability = null;
-    this.collabProjects = false;
-    this.commPartner = false;
-    this.industProjects = false;
-    this.mediaInterviews = false;
     this.additionalNotes = '';
     this.submitting = false;
     this.applying = false;
     this.submitted = false;
     this.submitError = false;
+
+    // Set from forceAction.onSuccess's return value (e.g. delete-expert's '/auth/logout') so
+    // the redirect waits for the user to dismiss the success screen instead of firing
+    // immediately underneath it.
+    this._pendingRedirect = null;
   }
 
   /**
@@ -99,6 +105,7 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
    */
   _onCancel() {
     const shouldReload = this.cdlDown && this.submitted;
+    const redirectUrl = this._pendingRedirect;
 
     this.additionalNotes = '';
     this.changeType = '';
@@ -106,15 +113,14 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
     this.searchLabel = '';
     this.searchItems = [];
     this.selectedItem = null;
-    this.collabProjects = false;
-    this.commPartner = false;
-    this.industProjects = false;
-    this.mediaInterviews = false;
     this.submitted = false;
     this.submitError = false;
+    this._pendingRedirect = null;
     this.dispatchEvent(new CustomEvent('cancel', {}));
 
-    if( shouldReload ) {
+    if( redirectUrl ) {
+      window.location.replace(redirectUrl);
+    } else if( shouldReload ) {
       window.location.reload();
     }
   }
@@ -150,13 +156,6 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
     this.searchQuery = '';
     this.searchItems = [];
     this.selectedItem = null;
-
-    if( v.includes('availability') && this.initialAvailability ) {
-      this.collabProjects = this.initialAvailability.collabProjects || false;
-      this.commPartner = this.initialAvailability.commPartner || false;
-      this.industProjects = this.initialAvailability.industProjects || false;
-      this.mediaInterviews = this.initialAvailability.mediaInterviews || false;
-    }
 
     if( isWork || isGrant ) {
       await this._loadSearchItems(isWork ? 'work' : 'grant');
@@ -225,8 +224,11 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
 
   /**
    * @method _onSubmit
-   * @description submit the change request; in cdlDown mode applies the change directly
-   * and waits for the dagster ES job to complete before advancing to the success screen
+   * @description submit the change request; in forceAction mode (an unplanned CDL-outage
+   * failure) applies the captured replay action for the specific item that failed; in
+   * cdlDown mode (the proactive "known outage" banner) applies a generically-selected
+   * change; both wait for the dagster ES job to complete before advancing to the success
+   * screen
    */
   async _onSubmit() {
     this.submitting = true;
@@ -235,13 +237,33 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
     try {
       const citation = this._buildCitation();
 
-      if( this.cdlDown ) {
-        let dagsterRes;
-        if( this._isAvailability() ) {
-          dagsterRes = await this._applyAvailabilityChange();
-        } else {
-          dagsterRes = await this._applyChange();
+      if( this.forceAction ) {
+        this.submitting = false;
+        this.applying = true;
+
+        const dagsterRes = await this.forceAction.run();
+
+        // Send the slack notification immediately (fire and forget)
+        this.ExpertModel.requestChange({
+          name: this.userName,
+          email: this.userEmail,
+          citation,
+          changeType: this.changeType,
+          notes: this.additionalNotes
+        }).catch(() => {});
+
+        const status = await this._pollUntilComplete(dagsterRes);
+        this.applying = false;
+
+        if( status !== 'SUCCESS' ) {
+          this.submitError = true;
+          return;
         }
+
+        const redirectUrl = await this.forceAction.onSuccess?.();
+        if( redirectUrl ) this._pendingRedirect = redirectUrl;
+      } else if( this.cdlDown ) {
+        const dagsterRes = await this._applyChange();
 
         // Send the slack notification immediately (fire and forget)
         this.ExpertModel.requestChange({
@@ -255,8 +277,13 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
         // Poll dagster until the ES step reaches a terminal state, then show success
         this.submitting = false;
         this.applying = true;
-        await this._pollUntilComplete(dagsterRes);
+        const status = await this._pollUntilComplete(dagsterRes);
         this.applying = false;
+
+        if( status !== 'SUCCESS' ) {
+          this.submitError = true;
+          return;
+        }
       } else {
         await this.ExpertModel.requestChange({
           name: this.userName,
@@ -300,7 +327,9 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
           const status = statusRes?.body?.data?.runOrError?.status;
           if( terminalStates.includes(status) ) {
             clearInterval(intervalId);
-            // CDL is known-down so CDL step failures are expected — always resolve
+            // Resolve with whatever terminal status was reached; callers are responsible
+            // for treating non-SUCCESS as an error (both the forceAction and cdlDown
+            // branches in _onSubmit do this).
             resolve(status);
           }
         } catch(err) {
@@ -312,58 +341,22 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
   }
 
   /**
-   * @method _isAvailability
-   * @description returns true when the selected change type is for availability settings
-   *
-   * @returns {Boolean}
-   */
-  _isAvailability() {
-    return this.changeType.toLowerCase().includes('availability');
-  }
-
-  /**
    * @method _buildCitation
    * @description build the citation string for the slack notification
    *
    * @returns {String}
    */
   _buildCitation() {
-    if( this._isAvailability() ) {
-      const selected = [];
-      if( this.collabProjects ) selected.push('Collaborative Projects');
-      if( this.commPartner ) selected.push('Community Partnerships');
-      if( this.industProjects ) selected.push('Industry Projects');
-      if( this.mediaInterviews ) selected.push('Media Interviews');
-      return selected.length ? `Availability: ${selected.join(', ')}` : 'Availability settings';
-    }
     if( this.dagsterDown ) return this.selectedItem?.label || this.searchQuery || '';
     return this.itemSubtext ? `${this.itemName}\n${this.itemSubtext}` : this.itemName;
   }
 
   /**
-   * @method _applyAvailabilityChange
-   * @description in cdlDown mode, call DagsterModel.updateExpertAvailability with the checked options
-   */
-  async _applyAvailabilityChange() {
-    const openTo = {
-      collabProjects: this.collabProjects,
-      commPartner: this.commPartner,
-      industProjects: this.industProjects,
-      mediaInterviews: this.mediaInterviews
-    };
-    const prevOpenTo = {
-      collabProjects: !this.collabProjects,
-      commPartner: !this.commPartner,
-      industProjects: !this.industProjects,
-      mediaInterviews: !this.mediaInterviews
-    };
-    const labels = utils.buildAvailabilityPayload(openTo, prevOpenTo);
-    return this.DagsterModel.updateExpertAvailability(this.expertId, labels);
-  }
-
-  /**
    * @method _applyChange
-   * @description in cdlDown mode, call the appropriate DagsterModel method to apply the change
+   * @description in cdlDown mode, call the appropriate DagsterModel force method to
+   * apply the change directly to Elasticsearch, bypassing CDL/Elements (which is known
+   * to be down). Limited to the same 4 urgent action types as the unplanned-failure
+   * (forceAction) flow.
    *
    * @returns {Promise<Object>} dagster response containing the runId
    */
@@ -372,19 +365,13 @@ export default class AppRequestChangeModal extends Mixin(LitElement).with(LitCor
     const id = this.selectedItem?.id;
 
     if( v.includes('hide a work') && id ) {
-      return this.DagsterModel.updateCitationVisibility(this.expertId, id, false);
-    } else if( v.includes('show a work') && id ) {
-      return this.DagsterModel.updateCitationVisibility(this.expertId, id, true);
+      return this.DagsterModel.forceUpdateCitationVisibility(this.expertId, id, false);
+    } else if( v.includes('reject a work') && id ) {
+      return this.DagsterModel.forceRejectCitation(this.expertId, id);
     } else if( v.includes('hide a grant') && id ) {
-      return this.DagsterModel.updateGrantVisibility(this.expertId, id, false);
-    } else if( v.includes('show a grant') && id ) {
-      return this.DagsterModel.updateGrantVisibility(this.expertId, id, true);
-    } else if( v.includes('hide my profile') ) {
-      return this.DagsterModel.updateExpertVisibility(this.expertId, false);
-    } else if( v.includes('show my profile') ) {
-      return this.DagsterModel.updateExpertVisibility(this.expertId, true);
+      return this.DagsterModel.forceUpdateGrantVisibility(this.expertId, id, false);
     } else if( v.includes('remove my profile') ) {
-      return this.DagsterModel.deleteExpert(this.expertId);
+      return this.DagsterModel.forceDeleteExpert(this.expertId);
     }
   }
 

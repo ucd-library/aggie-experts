@@ -128,7 +128,7 @@ export default function render() {
       }
 
       .overlay .footer-buttons button {
-        font-size: .9rem;
+        font-size: 1rem;
         margin-left: .6rem;
       }
 
