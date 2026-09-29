@@ -10,7 +10,7 @@ import signal
 import atexit
 
 import dagster as dg
-import psycopg2
+import psycopg
 
 
 # ---------------------------------------------------------------------------
@@ -42,9 +42,9 @@ NON_TERMINAL = [
 # Database connection
 # ---------------------------------------------------------------------------
 
-conn = psycopg2.connect(
+conn = psycopg.connect(
     host=os.getenv('DAGSTER_POSTGRES_HOST', 'localhost'),
-    database=os.getenv('DAGSTER_POSTGRES_DB', 'dagster'),
+    dbname=os.getenv('DAGSTER_POSTGRES_DB', 'dagster'),
     user=os.getenv('DAGSTER_POSTGRES_USER', 'postgres'),
     password=os.getenv('DAGSTER_POSTGRES_PASSWORD', 'postgres')
 )
