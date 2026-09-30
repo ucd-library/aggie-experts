@@ -7,6 +7,7 @@ program
   .command('dagster', 'manage Dagster')
   .command('delete-exception', 'set or remove a delete exception for a user')
   .command('extract', 'extract data from CDL, IAM, and Keycloak')
+  .command('grant-feed', 'run the Aggie Enterprise -> Symplectic grant-feed ETL')
   .command('list', 'list users from CDL group')
   .command('load', 'load data into database(s)')
   .command('reporting', 'import/export reporting database')

@@ -49,6 +49,13 @@ from lib.assets import (
     update_expert_availability_cdl,
     send_slack_notification,
     purge_stale_user_partitions,
+    grant_feed_ingest,
+    fetch_grant_feed_logs,
+    # ON HOLD (security review): the grant-feed email-check automation is
+    # disabled. check_grant_feed_email is still defined in lib/assets.py — it is
+    # just not registered here. Re-enable by uncommenting it and the
+    # grant_feed_email_job / schedules below.
+    # check_grant_feed_email,
 )
 from lib.jobs import (
     etl_users_job,
@@ -62,6 +69,10 @@ from lib.jobs import (
     update_expert_availability_job,
     force_update_scholarly_record_job,
     force_update_expert_job,
+    grant_feed_job,
+    grant_feed_logs_job,
+    # ON HOLD: grant_feed_email_job (defined in lib/jobs.py) not registered.
+    # grant_feed_email_job,
 )
 from lib.sensors import etl_notify_and_continue, admin_update_failure_sensor
 from lib.schedules import (
@@ -69,11 +80,18 @@ from lib.schedules import (
     weekly_elt_schedule_dev,
     cleanup_schedule_prod,
     cleanup_schedule_dev,
+    grant_feed_logs_schedule_prod,
+    grant_feed_logs_schedule_dev,
+    # ON HOLD: grant-feed email-check schedules (defined in lib/schedules.py)
+    # not registered — no automatic inbox polling.
+    # grant_feed_email_schedule_prod,
+    # grant_feed_email_schedule_dev,
 )
 
 defs = dg.Definitions(
     jobs=[
         etl_users_job, extract_users_job, transform_load_users_job, start_weekly_etl_job, post_etl_job, cleanup_job,
+          grant_feed_job, grant_feed_logs_job,
         update_scholarly_record_job, update_expert_job, update_expert_availability_job,
         force_update_scholarly_record_job, force_update_expert_job,
     ],
@@ -88,12 +106,16 @@ defs = dg.Definitions(
         update_expert_es, update_expert_cdl, update_expert_postgres,
         update_expert_availability_es, update_expert_availability_cdl,
         send_slack_notification, purge_stale_user_partitions,
+        grant_feed_ingest, fetch_grant_feed_logs,
     ],
     sensors=[etl_notify_and_continue, admin_update_failure_sensor],
     resources={},
     schedules=[
         weekly_elt_schedule_prod, weekly_elt_schedule_dev,
         cleanup_schedule_prod, cleanup_schedule_dev,
+        grant_feed_logs_schedule_prod, grant_feed_logs_schedule_dev,
+        # ON HOLD (security review): no automatic grant-feed inbox polling.
+        # grant_feed_email_schedule_prod, grant_feed_email_schedule_dev,
     ],
     executor=celery_executor.configured({
         "broker": "pyamqp://guest:guest@rabbitmq:5672//",

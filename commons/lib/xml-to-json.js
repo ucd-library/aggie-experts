@@ -1,7 +1,5 @@
-import cache from '../cache.js';
-import { logger } from '@ucd-lib/experts-commons';
+import { logger } from './logger.js';
 import { XMLParser } from 'fast-xml-parser';
-import fs from 'fs-extra';
 
 // Configure fast-xml-parser to mimic xml2json's default object output as closely as possible.
 // Key compatibility goals:

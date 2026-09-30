@@ -9,10 +9,8 @@
 
 import fetch from 'node-fetch';
 import path from 'path';
-
-import { logger, GoogleSecret, config } from '@ucd-lib/experts-commons';
+import { logger, GoogleSecret, config, xmlToJson } from '@ucd-lib/experts-commons';
 import cache from '../cache.js';
-import xmlToJson from './xml-to-json.js';
 
 /**
  * Elements can return different XML envelopes depending on schema version.

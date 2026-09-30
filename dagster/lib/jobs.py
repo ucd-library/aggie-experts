@@ -25,6 +25,9 @@ from .assets import (
     update_expert_postgres,
     update_expert_availability_es,
     update_expert_availability_cdl,
+    check_grant_feed_email,
+    grant_feed_ingest,
+    fetch_grant_feed_logs,
 )
 
 
@@ -122,4 +125,28 @@ cleanup_job = dg.define_asset_job(
         "dagster/priority": "-1",
         "dagster/max_runtime": str(60 * 60 * 2)  # 2 hour max runtime
     }
+)
+
+grant_feed_email_job = dg.define_asset_job(
+    name="grant_feed_email_job",
+    description="Daily poll of the AE grant-feed inbox; stages a new AEgrants.xml and triggers grant_feed_job when found.",
+    selection=dg.AssetSelection.assets(check_grant_feed_email),
+    tags={"dagster/priority": "1"}
+)
+
+grant_feed_job = dg.define_asset_job(
+    name="grant_feed_job",
+    description="Run the weekly AE -> Symplectic grant-feed ETL: transform, diff vs last week, upload delta.",
+    selection=dg.AssetSelection.assets(grant_feed_ingest),
+    tags={
+        "dagster/priority": "1",
+        "dagster/max_runtime": str(60 * 30)  # 30 minute max runtime
+    }
+)
+
+grant_feed_logs_job = dg.define_asset_job(
+    name="grant_feed_logs_job",
+    description="Daily fetch of Symplectic import/delete logs; keeps meaningful ones in CasKFS and loads the confirmation into the grant_feed reporting schema.",
+    selection=dg.AssetSelection.assets(fetch_grant_feed_logs),
+    tags={"dagster/priority": "1"}
 )
