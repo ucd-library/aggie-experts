@@ -28,6 +28,7 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
       paginationTotal : { type : Number },
       currentPage : { type : Number },
       totalResultsCount : { type : Number },
+      totalResultsCountCapped : { type : Boolean },
       rawSearchData : { type : Object },
       resultsLoading : { type : String },
       // filters : { type : Array },
@@ -73,6 +74,7 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
     this.currentPage = 1;
     this.resultsPerPage = 25;
     this.totalResultsCount = 0;
+    this.totalResultsCountCapped = false;
     this.rawSearchData = {};
     this.resultsLoading = '...';
     this.refineSearchCollapsed = true;
@@ -105,9 +107,27 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
     this.openToCollapsed = true;
     this.affiliationSearch = '';
     this.expandedSubCategories = [];
+    // dept codes with content matching the current keyword; null = show all (no filtering yet)
+    this._deptMatchCodes = null;
     // this.orgLookup is initialised by AffiliationMixin
 
     this.render = render.bind(this);
+  }
+
+  /**
+   * @method _resetSidebarState
+   * @description reset the sidebar filter UI to its default collapsed state and scroll the
+   * affiliation list back to the top. Used on a fresh search so the sidebar does not retain
+   * accordion/scroll state from the previous search.
+   */
+  _resetSidebarState() {
+    this.affiliationCollapsed = true;
+    this.dateCollapsed = true;
+    this.openToCollapsed = true;
+    this.refineSearchCollapsed = true;
+    this.affiliationSearch = '';
+    this.expandedSubCategories = [];
+    this._requestAffiliationScrollReset();
   }
 
   connectedCallback() {
@@ -127,6 +147,16 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
 
   firstUpdated() {
     if( this.AppStateModel.location.page !== 'search' ) return;
+
+    // A fresh search from the homepage sets resetSearch BEFORE navigating — i.e. before this
+    // component exists to hear it — so the flag can still be set when we first load. This
+    // component already starts in its default (collapsed) sidebar state, so just consume the
+    // flag here; otherwise it lingers and the first subsequent filter change (e.g. a date
+    // slider move) is misread as a fresh search and collapses the sidebar.
+    if( this.AppStateModel.store?.data?.resetSearch ) {
+      this.resettingSearch = true; // swallow the resulting echo update (mirrors _onAppStateUpdate)
+      this.AppStateModel.set({ resetSearch: false });
+    }
 
     this._updateFilters();
     this._onSearch({ detail: this.searchTerm });
@@ -161,6 +191,9 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
     if( e.resetSearch ) {
       resetSearch = true;
       this.resettingSearch = true;
+      // a fresh search (from the homepage or the header magnifying glass) is a "new" page,
+      // so clear any accordion/scroll state carried over from the previous search
+      this._resetSidebarState();
       this.AppStateModel.set({ resetSearch: false });
     }
 
@@ -509,18 +542,31 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
     return count;
   }
 
+  /**
+   * @method _formattedTotal
+   * @description the total result count formatted for display (commas on 5+ digit numbers,
+   * trailing "+" when the count is a capped lower bound), or the loading placeholder.
+   * @returns {String}
+   */
+  _formattedTotal() {
+    if( this.totalResultsCount == null ) return this.resultsLoading;
+    return utils.formatCount(this.totalResultsCount, this.totalResultsCountCapped);
+  }
+
   _getMobileViewLabel() {
-    const n = this.totalResultsCount != null ? this.totalResultsCount : '';
+    const raw = this.totalResultsCount;
+    const n = raw != null ? utils.formatCount(raw, this.totalResultsCountCapped) : '';
+    const plural = raw !== 1; // a capped total is always > 1
     if( !this.atType ) return `View ${n} results`;
     let typeLabel = '';
-    if( this.atType === 'expert' ) typeLabel = n === 1 ? 'expert' : 'experts';
-    else if( this.atType === 'grant' ) typeLabel = n === 1 ? 'grant' : 'grants';
+    if( this.atType === 'expert' ) typeLabel = plural ? 'experts' : 'expert';
+    else if( this.atType === 'grant' ) typeLabel = plural ? 'grants' : 'grant';
     else if( this.atType === 'work' ) {
       if( this.type ) {
         typeLabel = utils.getCitationType(this.type).toLowerCase();
-        if( n !== 1 && typeLabel && !typeLabel.endsWith('s') ) typeLabel += 's';
+        if( plural && typeLabel && !typeLabel.endsWith('s') ) typeLabel += 's';
       }
-      else typeLabel = n === 1 ? 'work' : 'works';
+      else typeLabel = plural ? 'works' : 'work';
     } else typeLabel = this.atType;
     if( this.status ) typeLabel = this.status.toLowerCase() + ' ' + typeLabel;
     return `View ${n} ${typeLabel}`;
@@ -539,6 +585,7 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
     // update url
     this.searchTerm = e.detail.trim();
     this.totalResultsCount = null;
+    this.totalResultsCountCapped = false;
 
     let searchWords = utils.filterOutStopWords(this.searchTerm);
     if( !searchWords.length ) {
@@ -780,6 +827,87 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
     return combined;
   }
 
+  /**
+   * @method _computeDeptMatchCodes
+   * @description build the set of department codes that have results in the current view. Uses
+   * the `dept_facet` aggregation from the search API, which reflects the active view filters
+   * (@type / status / type / date) but not the dept filter itself, falling back to the
+   * keyword-scoped global dept aggregation. The aggregation is keyed by official department name
+   * (hasOrganizationalUnit.name.kw), mapped back to dept codes via the org lookup. Returns null
+   * when no dept aggregation is available so the affiliation list falls back to showing all units.
+   * @param {Object} data raw search payload
+   * @returns {Set<string>|null} matching dept codes, or null to show all
+   */
+  _computeDeptMatchCodes(data) {
+    const deptAgg = data?.dept_facet || data?.global_aggregations?.dept;
+    if( !deptAgg || typeof deptAgg !== 'object' ) return null;
+
+    // the hasOrganizationalUnit.name.kw field is normalised (lowercased) in ES, so the
+    // aggregation keys are lowercase variants of the org-unit names. Match them against the
+    // org lookup case-insensitively, on either the official name or the display name.
+    const matchedNames = new Set(
+      Object.entries(deptAgg)
+        .filter(([, count]) => count > 0)
+        .map(([name]) => name.toLowerCase())
+    );
+
+    const codes = new Set();
+    for( const cat of (this.orgLookup || []) ) {
+      for( const sub of cat.subCategories ) {
+        for( const d of sub.depts ) {
+          if( matchedNames.has((d.officialName || '').toLowerCase()) ||
+              matchedNames.has((d.name || '').toLowerCase()) ) {
+            codes.add(d.deptCode);
+          }
+        }
+      }
+    }
+    return codes;
+  }
+
+  /**
+   * @method _innerHitInDateRange
+   * @description whether a matched @graph child (a work or grant inner hit) falls within the
+   * active date filter, so the expert "Search matches" counts reflect the selected range.
+   * Mirrors the ES date logic — works by issued year, grants by active-interval overlap — and
+   * returns true when no date filter is active.
+   * @param {Object} h inner hit source (has @type, issued, dateTimeInterval)
+   * @returns {Boolean}
+   */
+  _innerHitInDateRange(h) {
+    if( !this.filterByDate ) return true;
+
+    const fromY = this.dateFrom ? parseInt(String(this.dateFrom).slice(0, 4)) : null;
+    const toY = this.dateTo ? parseInt(String(this.dateTo).slice(0, 4)) : null;
+    const yearOf = (v) => {
+      if( v == null ) return null;
+      const s = Array.isArray(v) ? v[0] : v;
+      const m = String(s).match(/\d{4}/);
+      return m ? parseInt(m[0]) : null;
+    };
+
+    const type = h['@type'] || [];
+    const isGrant = Array.isArray(type) ? type.includes('Grant') : /Grant/.test(String(type));
+    if( isGrant ) {
+      const startY = yearOf(h.dateTimeInterval?.start?.dateTime);
+      const endY = yearOf(h.dateTimeInterval?.end?.dateTime);
+      // both endpoints: active interval must overlap the selected range
+      if( startY != null && endY != null ) {
+        return (toY == null || startY <= toY) && (fromY == null || endY >= fromY);
+      }
+      // end only (open start): matches if it ends on/after the range start
+      if( endY != null ) {
+        return (fromY == null || endY >= fromY);
+      }
+      return false;
+    }
+
+    // works (and anything else): match on issued year
+    const iy = yearOf(h.issued);
+    if( iy == null ) return false;
+    return (fromY == null || iy >= fromY) && (toY == null || iy <= toY);
+  }
+
   async _onSearchUpdate(e, fromSearchPage=false) {
     if (e?.state !== 'loaded' || !fromSearchPage) return;
 
@@ -789,6 +917,8 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
 
     this.rawSearchData = JSON.parse(JSON.stringify(e.payload));
     this.globalAggregations = this.convertSearchAggregations(this.rawSearchData);
+    // limit the affiliation list to departments that have content matching the keyword
+    this._deptMatchCodes = this._computeDeptMatchCodes(this.rawSearchData);
     // ---- Date histogram/range slider ----
     // Canonical payload shape:
     //   payload.global_aggregations.years + payload.years_works/years_grants
@@ -844,14 +974,16 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
           const clampedMin = urlMin != null ? Math.max(absMin, Math.min(urlMin, absMax)) : absMin;
           const clampedMax = urlMax != null ? Math.max(absMin, Math.min(urlMax, absMax)) : absMax;
 
-          await this._refreshRange(true);
-
+          // set data/bounds first, then force a re-merge so the histogram redraws with the
+          // new search's data (refreshing before assigning data would re-merge the stale shape)
+          range.data = this.dateRangeData;
           range.initialMin = clampedMin;
           range.initialMax = clampedMax;
           range.min = clampedMin;
           range.max = clampedMax;
-          range.data = this.dateRangeData;
           range.hideHistogram = false;
+
+          await this._refreshRange(true);
 
           if (this.filterByDate && (this.dateFrom || this.dateTo)) {
             this.filterByDateLabel = `${clampedMin} - ${clampedMax}`;
@@ -878,8 +1010,8 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
       if (resultType === 'expert') {
         subtitle = r.name?.split('§')?.pop()?.trim();
         if (name === subtitle) subtitle = '';
-        numberOfWorks = (r['_inner_hits']?.filter(h => h['@type']?.includes('Work')) || []).length;
-        numberOfGrants = (r['_inner_hits']?.filter(h => h['@type']?.includes('Grant')) || []).length;
+        numberOfWorks = (r['_inner_hits']?.filter(h => h['@type']?.includes('Work') && this._innerHitInDateRange(h)) || []).length;
+        numberOfGrants = (r['_inner_hits']?.filter(h => h['@type']?.includes('Grant') && this._innerHitInDateRange(h)) || []).length;
 
       } else if (resultType === 'grant') {
         subtitle = ((r.name?.split('§') || [])[1] || '').trim();
@@ -920,6 +1052,7 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
     });
 
     this.totalResultsCount = e.payload.total;
+    this.totalResultsCountCapped = e.payload.totalCapped || false;
     this.paginationTotal = Math.ceil(this.totalResultsCount / this.resultsPerPage);
 
     // if results dropped to 0, reset the sig so the histogram re-initializes
@@ -1162,8 +1295,8 @@ export default class AppSearch extends AffiliationMixin(Mixin(LitElement)
         // Name | Aggie Experts Webpage | # of works that match the keyword | Number of grants that match the keyword | URLs from the profile
         let name = match.name?.split('§')?.[0]?.trim();
         let landingPage = 'https://experts.ucdavis.edu/' + match['@id'];
-        let numberOfWorks = (match['_inner_hits']?.filter(h => h['@type']?.includes('Work')) || []).length;
-        let numberOfGrants = (match['_inner_hits']?.filter(h => h['@type']?.includes('Grant')) || []).length;
+        let numberOfWorks = (match['_inner_hits']?.filter(h => h['@type']?.includes('Work') && this._innerHitInDateRange(h)) || []).length;
+        let numberOfGrants = (match['_inner_hits']?.filter(h => h['@type']?.includes('Grant') && this._innerHitInDateRange(h)) || []).length;
         let urls = (match.contactInfo?.hasURL || []).map(w => w.url.trim()).join('; ');
 
         experts.push(csvRow([

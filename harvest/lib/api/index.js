@@ -13,8 +13,6 @@
  *
  *   await miv.load({ user, metadata, files });
  *   await sitefarm.load({ user, metadata, files });
- *   await miv.purge(expertId);
- *   await sitefarm.purge(expertId);
  *
  * ApiUser is re-exported for callers that need to write to the user table
  * outside the MIV/SiteFarm load paths (e.g. one-off CLIs or tests).

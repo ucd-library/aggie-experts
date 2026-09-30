@@ -92,6 +92,12 @@ function browse_endpoint(router,model) {
   ).get(
     public_or_is_user,
     async (req, res) => {
+      try {
+        await model.verify_template(template);
+      } catch (err) {
+        return res.status(400).send('Invalid request');
+      }
+
       const params = {
         size: 25,
         index: model.readIndexAlias,
@@ -114,12 +120,11 @@ function browse_endpoint(router,model) {
       if( req.query.counts === 'true' ) {
         // return aggregations without hits; optionally scoped to a letter (p param)
         // but always without status/type so all category buckets are returned
-        const opts = { id: "name", params: { ...params, size: 0 } };
+        const opts = { id: "name", params: { ...params, size: 0, categoryAggs: true } };
         delete opts.params.status;
         delete opts.params.type;
         if( opts.params.p === 'all' ) delete opts.params.p;
         try {
-          await model.verify_template(template);
           const find = await model.search(opts);
           res.json(find);
         } catch (err) {
@@ -135,9 +140,9 @@ function browse_endpoint(router,model) {
         // ordering is correct across pages, not just within each page.
         delete params.p;
         params.sortNumericLast = true;
+        params.yearAggs = true;
         const opts = { id: "name", params };
         try {
-          await model.verify_template(template);
           const find = await model.search(opts);
           if( Array.isArray(find?.hits) ) {
             find.hits = find.hits.map(hit => ({ ...hit, letter: browseLetterFromName(hit.name) }));
@@ -154,6 +159,7 @@ function browse_endpoint(router,model) {
         } else {
           params.p = '1';
         }
+        params.yearAggs = true;
 
         const opts = {
           id: "name",
@@ -161,7 +167,6 @@ function browse_endpoint(router,model) {
         };
 
         try {
-          await model.verify_template(template);
           const find = await model.search(opts);
           res.send(find);
         } catch (err) {
@@ -169,7 +174,6 @@ function browse_endpoint(router,model) {
         }
       } else {
         try {
-          await model.verify_template(template);
           const search_templates=[];
           ["1","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O",
            "P","Q","R","S","T","U","V","W","X","Y","Z"].forEach((letter) => {

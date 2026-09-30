@@ -6,10 +6,11 @@
  *   - MivApi calls upsertUser to ensure identity columns
  *   - SitefarmApi calls upsertUserProfile to overlay profile fields
  *
- * Identity columns (email, expert_id, ucd_person_uuid, iam_id, display_name)
- * are sourced from the webapp/expert.jsonld doc; profile columns (orcid_id,
- * researcher_id, scopus_ids, overview, research_interests, contact_info,
- * expert_raw_payload) are sourced from ae-std/person.jsonld.
+ * Both identity columns (email, expert_id, ucd_person_uuid, iam_id,
+ * display_name) and profile columns (orcid_id, researcher_id, scopus_ids,
+ * overview, research_interests, contact_info, expert_raw_payload) are sourced
+ * from ae-std/person.jsonld, so the api pipeline is fully decoupled from the
+ * webapp elasticsearch projection.
  */
 
 import PgJsonld from '../pg-jsonld.js';
@@ -25,27 +26,32 @@ class ApiUser {
   }
 
   // --------------------------------------------------------------------------
-  // Identity record (from webapp/expert.jsonld)
+  // Identity record (from ae-std/person.jsonld)
   // --------------------------------------------------------------------------
 
-  _getExpertNode(expertDoc={}) {
-    return PgJsonld.asArray(expertDoc['@graph'])
-      .find(node => PgJsonld.hasType(node, 'Expert')) || null;
-  }
+  buildUserRecord({ user, metadata={}, aeStdPersonDoc=null }) {
+    const normalized = aeStdPersonDoc ? this.normalizeAeStdPersonDoc(aeStdPersonDoc) : null;
 
-  buildUserRecord({ user, metadata={}, expertDoc={} }) {
-    const expertNode = this._getExpertNode(expertDoc) || {};
-    const expertId = PgJsonld.normalizeExpertId(metadata.expertId || expertDoc['@id']);
-    const email = expertNode?.contactInfo?.hasEmail || expertNode?.hasEmail || user || null;
+    const expertId = PgJsonld.normalizeExpertId(
+      normalized?.expert_id_uri || metadata.expertId
+    );
+    const email = normalized?.contact_info?.hasEmail || user || null;
 
     if (!expertId || !email) return null;
+
+    // Prefer a "Given Family" display name from the vcard hasName; fall back to
+    // the formatted contact_info.name string when name parts are unavailable.
+    const hasName = normalized?.contact_info?.hasName;
+    const displayName = [hasName?.given, hasName?.family].filter(Boolean).join(' ')
+      || normalized?.contact_info?.name
+      || null;
 
     return {
       email,
       expert_id: expertId,
       ucd_person_uuid: metadata?.ucdPersonUUID || null,
       iam_id: metadata?.iamId || null,
-      display_name: expertNode?.name || expertNode?.contactInfo?.name || null
+      display_name: displayName
     };
   }
 
@@ -53,19 +59,24 @@ class ApiUser {
    * Upsert the identity columns for a user. yearWeek is the current ETL batch
    * identifier (e.g. "2026-22"); it's written to the year_week column so we
    * can tell which weekly run last touched this row.
+   *
+   * Conflicts on expert_id (the primary key / stable identity) so a changed
+   * email updates the existing row rather than colliding with the PK. This
+   * mirrors the api.user upsert in pg-client.js.
    */
   async upsertUser(client, row, yearWeek) {
     await client.query(
       `INSERT INTO ${this.schema}."user"
-        (email, expert_id, ucd_person_uuid, iam_id, display_name, year_week)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       ON CONFLICT (email)
+        (email, expert_id, ucd_person_uuid, iam_id, display_name, year_week, last_seen_cdl)
+       VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP)
+       ON CONFLICT (expert_id)
        DO UPDATE SET
-        expert_id       = EXCLUDED.expert_id,
+        email           = EXCLUDED.email,
         ucd_person_uuid = EXCLUDED.ucd_person_uuid,
         iam_id          = EXCLUDED.iam_id,
         display_name    = EXCLUDED.display_name,
-        year_week       = EXCLUDED.year_week`,
+        year_week       = EXCLUDED.year_week,
+        last_seen_cdl   = CURRENT_TIMESTAMP`,
       [row.email, row.expert_id, row.ucd_person_uuid, row.iam_id, row.display_name, yearWeek]
     );
   }

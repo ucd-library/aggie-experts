@@ -48,6 +48,7 @@ const config = {
   experts : {
     version : '1.0.0',
     is_public : ! (env.EXPERTS_IS_PUBLIC === "false"),
+    propogateCdlChanges : env.CDL_PROPAGATE_CHANGES === "true",
     cdl: {
       expert: {
         propagate: (env.CDL_PROPAGATE_CHANGES === "true") || false,
@@ -221,7 +222,7 @@ const config = {
     secrets : {
       keycloakSecrets : 'keycloak-client-secrets'
     },
-    orgLookupSheetUrl : env.ORG_LOOKUP_SHEET_URL || 'https://docs.google.com/spreadsheets/d/1vTqlpEI9vyzeZG2TTTNNFFXgC7u7OqI5wkY47TOohZM/export?format=csv&gid=647977625',
+    orgLookupSheetUrl : env.ORG_LOOKUP_SHEET_URL || '',
   },
 
   cdl : {
@@ -250,6 +251,7 @@ const config = {
       url : 'https://qa-oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v6.13',
       authname : 'qa-oapolicy',
       secretName : 'cdl-elements-json',
+      localLoginPath : '/non-sso-login.html',
       timeout : 30000
     },
 
@@ -258,6 +260,7 @@ const config = {
       url : 'https://oapolicy.universityofcalifornia.edu:8002/elements-secure-api/v6.13',
       authname : 'oapolicy',
       secretName : 'cdl-elements-json',
+      localLoginPath : '/non-sso-login.html',
       group_by_name : {
         'dev': 1591,
         'sandbox': 1587,
@@ -323,6 +326,11 @@ const config = {
   transform: {
     // enable sorting of ae-std output files for debugging
     stdSort: (env.EXPERTS_STD_SORT === 'true')
+  },
+
+  slack : {
+    adminNotifyMentions : (env.SLACK_ADMIN_NOTIFY_MENTIONS || '')
+      .split(',').map(s => s.trim()).filter(Boolean)
   },
 
   dagster : {

@@ -20,6 +20,8 @@ config.client = {
   faqUseGcs : process.env.CLIENT_FAQ_USE_GCS === 'true',
   faqMarkdownUrl : process.env.CLIENT_FAQ_MARKDOWN_URL || process.env.CLIENT_STATIC_ASSETS_BASE_URL || 'https://storage.googleapis.com/aggie-experts-static-assets',
   assetsBaseUrl : env.CLIENT_STATIC_ASSETS_BASE_URL || 'https://storage.googleapis.com/aggie-experts-static-assets',
+  cdlServiceDown : process.env.CDL_SERVICE_DOWN === 'true',
+  dagsterServiceDown : process.env.DAGSTER_SERVICE_DOWN === 'true',
   dagster : {
     host : process.env.DAGSTER_HOST || 'http://dagster-ui:3000',
     graphqlPath : process.env.DAGSTER_GRAPHQL_PATH || '/graphql',

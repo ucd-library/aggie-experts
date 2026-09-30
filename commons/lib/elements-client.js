@@ -5,6 +5,7 @@ import { JSDOM } from 'jsdom';
 import fetchCookie from 'fetch-cookie';
 import nodeFetch from 'node-fetch';
 import AbortController from 'abort-controller';
+import { logger } from './logger.js';
 
 // TODO
 // merge this with ./extract/cdl.js
@@ -59,6 +60,7 @@ export class Impersonator {
     this.cdl = ElementsClient.info(this.instance);
     this.apiUrl = this.cdl?.url;
     this.webUrl = this.cdl?.host;
+    this.localLoginUrl = this.cdl?.localLoginPath ? `${this.cdl.host}${this.cdl.localLoginPath}` : null;
 
     // Impersonation/login endpoints are on the web host, not the secure API path.
     if( !this.webUrl && this.apiUrl ) {
@@ -97,6 +99,12 @@ export class Impersonator {
     try {
       resp = await this.fetch(url, {
         ...options,
+        headers: {
+          // CDL's front end appears to serve a "browser not supported" stub
+          // (no login form) to non-browser User-Agents.
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+          ...options.headers
+        },
         signal: controller.signal
       });
     } catch (e) {
@@ -113,6 +121,19 @@ export class Impersonator {
     if (resp.status !== 204 && resp.status !== 200) {
       const error = new Error(`CDL change propagation Error(${resp.status}):`);
       const bodyText = await resp.text();
+
+      const headers = Object.fromEntries(resp.headers.entries());
+      delete headers['set-cookie'];
+
+      logger.info('ElementsClient.fetchWithTimeout non-200 response', {
+        instance: this.instance,
+        url,
+        status: resp.status,
+        redirected: resp.redirected,
+        bodyLength: bodyText.length,
+        bodySnippet: bodyText.slice(0, 500),
+        headers
+      });
 
       try {
         const parsed = JSON.parse(bodyText);
@@ -149,129 +170,62 @@ export class Impersonator {
   }
 
   async login() {
-
-    function getLoginFields(html) {
-      const dom = new JSDOM(html);
-
-      let form = dom.window.document.querySelector('form');
-      let fields = Array.from(form.querySelectorAll('input'));
-      let postPath = form.getAttribute('action');
-      let method = form.getAttribute('method');
-      let usernameField = fields.filter(f => f.id === 'username')[0].getAttribute('name');
-      let passwordField = fields.filter(f => f.id === 'password')[0].getAttribute('name');
-
-      return {
-        postPath,
-        method,
-        usernameField,
-        passwordField
-      };
-    }
-
     const service_account = await this.service_account();
+
     if( !service_account.user || !service_account.pass ) {
       throw new Error('service_acount requires .user .pass');
     }
 
-    // setup login cookies and session
-    let resp = await this.fetchWithTimeout(this.webUrl);
-    // get return url
-    let returnUrl = new URL(
-      new URL(resp.url).searchParams.get('return')
-    );
+    // The login page itself is now a client-rendered React app (no server-rendered
+    // <form> to scrape), but the POST target/fields are static (com=login, username,
+    // password) and the response still embeds a window.SYMPLECTIC JSON blob — same
+    // as impersonate()/profile() below — so we read login success/failure from that
+    // instead of looking for a login form in the response HTML.
+    let resp = await this.fetchWithTimeout(this.localLoginUrl);
 
-    // parse out entityId for non-uc login
-    let dom = new JSDOM(await resp.text());
-    let entityId = Array.from(dom.window.document.querySelectorAll('[data-entityid]'))
-        .filter(node => node.innerHTML.trim().toLowerCase() === 'non-uc')
-        .map(n => n.getAttribute('data-entityid'))[0];
-
-    // add entityId to return url
-    returnUrl.searchParams.set('entityID', entityId);
-
-    resp = await this.fetchWithTimeout(returnUrl);
-
-    // grab the login form fields and form path
-    let respText = await resp.text();
-    let { postPath, method, usernameField, passwordField } = getLoginFields(respText);
-    let loginOrigin = new URL(resp.url).origin;
-    let loginUrl = loginOrigin+postPath;
-
-    // set the login username/password
     let formData = new URLSearchParams();
-    formData.append(usernameField, service_account.user);
-    formData.append(passwordField, service_account.pass);
-    formData.append('_eventId_proceed',	'');
+    formData.set('com', 'login');
+    formData.set('username', service_account.user);
+    formData.set('password', service_account.pass);
 
-    //console.log('loginUrl\n', loginUrl, '\nformData\n', formData);
-
-    // submit login form, this will redirect with saml request fields
-    resp = await this.fetchWithTimeout(loginUrl, {
-      method: method.toUpperCase(),
+    resp = await this.fetchWithTimeout(this.localLoginUrl, {
+      method: 'POST',
       body: formData.toString(),
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       }
     });
-    const loginSubmitHtml = await resp.text();
-    dom = new JSDOM(loginSubmitHtml);
 
-    // finish saml request
-    let samlOrigin = new URL(resp.url).origin;
-    let form = dom.window.document.querySelector('form');
-
-    if( !form ) {
-      throw new Error('IdP login did not return a SAML form (possible credential or IdP challenge failure)');
+    const loginRespText = await resp.text();
+    let symplectic;
+    try {
+      symplectic = new JSDOM(loginRespText, {runScripts: 'dangerously'}).window.SYMPLECTIC;
+    } catch (e) {
     }
 
-    let samlUrl = form.getAttribute('action');
-    let samlMethod = (form.getAttribute('method') || 'POST').toUpperCase();
-    formData = new URLSearchParams();
-    const samlInputs = Array.from(form.querySelectorAll('input'));
-    samlInputs
-      .forEach(input => formData.append(input.getAttribute('name'), input.getAttribute('value')));
-
-    const hasSamlResponse = samlInputs.some(input => input.getAttribute('name') === 'SAMLResponse');
-
-    if( !hasSamlResponse ) {
-      throw new Error('IdP login did not produce SAMLResponse (credentials may be rejected or additional challenge required)');
+    const loginError = symplectic?.boilerplateData?.oneTimeJson?.loginErrorState;
+    if( loginError ) {
+      const message = symplectic.boilerplateData.oneTimeJson.loginErrorMessage || 'credentials may be rejected';
+      throw new Error(`Local login did not succeed — ${message}`);
     }
 
-    if( !samlUrl.match(/^http(s)?:\/\//) ) {
-      samlUrl = samlOrigin + samlUrl;
-    }
-
-    // create a new AbortController for each request
-    const controller = new AbortController();
-
-    resp = await this.fetchWithTimeout(samlUrl, {
-      method : samlMethod,
-      body: formData.toString(),
-      abort_controller: controller,
-      timeout: this.cdl?.timeout || 30000,
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      }
-    });
-
-    //console.log(`login ${this.userId} status ${resp.status} ${resp.redirected ? 'redirected' : ''}`);
-    // abort if we get a redirect
-    controller.abort();
     return resp;
   }
 
+  /**
+   * @method getCsrfToken
+   * @description CDL no longer embeds a CSRF token in server-rendered HTML
+   * (window.SYMPLECTIC.csrfToken); it's now served as a plain-text body from
+   * a dedicated endpoint, tied to the current session cookie.
+   * @returns {Promise<string>}
+   */
+  async getCsrfToken() {
+    const resp = await this.fetchWithTimeout(`${this.webUrl}/csrf`);
+    return (await resp.text()).trim();
+  }
+
   async impersonate() {
-    // Get the impersonation token's via cookie
-    let resp = await this.fetchWithTimeout(`${this.webUrl}/impersonate.html?ii=false`);
-    let csrfToken;
-    try {
-      let text=await resp.text();
-      // remove error causing script
-      text=text.replace('<script>jQuery.noConflict();</script>', '');
-      //console.log('text\n', text);
-      csrfToken = new JSDOM(text, {runScripts: "dangerously"}).window.SYMPLECTIC.csrfToken;
-    } catch(e) {
-    }
+    const csrfToken = await this.getCsrfToken();
 
     let formData = new URLSearchParams();
     formData.append('__csrf_token', csrfToken);
@@ -280,13 +234,19 @@ export class Impersonator {
 
     const controller = new AbortController();
 
-    resp = await this.fetchWithTimeout(`${this.webUrl}/impersonate.html`, {
+    let resp = await this.fetchWithTimeout(`${this.webUrl}/impersonate.html`, {
       method: 'POST',
       body: formData,
       abort_controller: controller,
       headers: {
          'Content-Type': 'application/x-www-form-urlencoded'
       }
+    });
+    logger.info('ElementsClient.impersonate post debug', {
+      instance: this.instance,
+      userId: this.userId,
+      postStatus: resp.status,
+      redirected: resp.redirected
     });
     //console.log(`impersonate ${this.userId} status ${resp.status} ${resp.redirected ? 'redirected' : ''}`);
     controller.abort();
@@ -307,8 +267,7 @@ export class Impersonator {
   }
 
   async editProfile(data) {
-    let symplectic = await this.profile();
-    let csrfToken = symplectic.csrfToken;
+    let csrfToken = await this.getCsrfToken();
 
     let formData = new FormData();
     formData.append('__csrf_token', csrfToken);
@@ -335,8 +294,7 @@ export class Impersonator {
    * @returns {Promise<Response>}
    */
   async userprofile(data) {
-    const symplectic = await this.profile();
-    const csrfToken = symplectic.csrfToken;
+    const csrfToken = await this.getCsrfToken();
 
     const formData = new FormData();
     formData.append('__csrf_token', csrfToken);
@@ -420,8 +378,7 @@ export class Impersonator {
    * @returns {Promise<Response>}
    */
   async listobjects(data) {
-    const symplectic = await this.profile();
-    const csrfToken = symplectic.csrfToken;
+    const csrfToken = await this.getCsrfToken();
 
     const formData = new FormData();
     formData.append('__csrf_token', csrfToken);

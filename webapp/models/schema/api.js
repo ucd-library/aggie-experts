@@ -1,6 +1,9 @@
 const router = require('express').Router();
-const { user_can_edit } = require('../middleware/index.js')
+const { user_can_edit, public_or_is_user } = require('../middleware/index.js')
 const BaseModel = require('../base/model.js');
+const { config } = require('@ucd-lib/experts-commons');
+
+const PUBLIC_INDEX_TYPES = ['experts', 'works', 'grants'];
 
 router.route(
     '/es/indexes'
@@ -98,6 +101,29 @@ router.route(
             res.status(200).json({ 
                 message: `Deleted indexes ${indexesToDelete.join(', ')} successfully` 
             });
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    }
+);
+
+router.route(
+    '/es/public-index/:type'
+).get(
+    public_or_is_user,
+    async (req, res) => {
+        try {
+            const type = req.params.type;
+            if( !PUBLIC_INDEX_TYPES.includes(type) ) {
+                return res.status(400).json({ error: `type must be one of: ${PUBLIC_INDEX_TYPES.join(', ')}` });
+            }
+
+            const model = new BaseModel();
+            const aliasName = `${type}-${config.elasticsearch.aliases.current}`;
+            const aliases = await model.getAvailableAliases();
+            const indexName = Object.keys(aliases).find(name => aliases[name]?.aliases?.[aliasName]) || null;
+
+            res.status(200).json({ indexName });
         } catch (e) {
             res.status(500).json({ error: e.message });
         }

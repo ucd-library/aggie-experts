@@ -56,7 +56,9 @@ return html`
 
   </style>
 
-  <div class="faq-header">
+  <div class="faq-header" 
+    role="banner"
+    aria-label="Help">
     <div class="faq-label">Help</div>
     <div style="display: flex; height: 75px;">
       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="89" viewBox="0 0 24 89" fill="none">
@@ -67,7 +69,9 @@ return html`
       </svg>
     </div>
   </div>
-  <div class="faq container top">
+  <div class="faq container top"
+    role="main"
+    aria-label="Frequently Asked Questions">
     <div class="section">
       ${!this.faqLoaded ? html`<p>Loading FAQ...</p>` : ''}
       ${this.faqLoadError ? html`<p>${this.faqLoadError}</p>` : ''}

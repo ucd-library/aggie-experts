@@ -251,19 +251,26 @@ class BaseModel extends EsDataModel {
 
   /**
    * @method verify_template
-   * @description Adds template to elastic search if it doesn't exist
+   * @description Adds template to elastic search if it doesn't exist, or updates it if the
+   * stored script source differs from the current definition (so template edits take effect).
    */
   async verify_template(template) {
     if (!Array.isArray(template)) {
       template = [template];
     }
     for (let t of template) {
+      logger.info(`checking template ${t.id}`);
+      let storedSource = null;
       try {
-        logger.info(`checking template ${t.id}`);
-        let result = await this.client.getScript({id:t.id});
+        const result = await this.client.getScript({id:t.id});
+        storedSource = (result?.body ?? result)?.script?.source ?? null;
       } catch (err) {
+        storedSource = null; // not found — will be created below
+      }
+
+      if (storedSource !== t.script?.source) {
         try {
-          logger.info(`adding template ${t.id}`);
+          logger.info(`${storedSource === null ? 'adding' : 'updating'} template ${t.id}`);
           const result=await this.client.putScript(t);
         } catch (err) {
           throw new Error(`verify_template: ${err}`);
@@ -282,7 +289,10 @@ class BaseModel extends EsDataModel {
   compact_search_results(results, params) {
     const compact = {
       params,
-      total: results?.hits?.total?.value ?? 0
+      total: results?.hits?.total?.value ?? 0,
+      // "gte" means the true total exceeds what ES counted (capped, e.g. at 10,000 when the
+      // template does not set track_total_hits) — surfaced so the UI can show "10,000+"
+      totalCapped: (results?.hits?.total?.relation ?? 'eq') === 'gte'
     };
 
     // hits + inner_hits

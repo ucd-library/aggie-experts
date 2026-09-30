@@ -30,11 +30,18 @@ export default class AppHome extends Mixin(LitElement)
    * @param {Object} e
    */
   _onSearch(e) {
-    this.AppStateModel.set({ resetSearch: true });
     let searchBox = this.shadowRoot.querySelector('#searchBox');
     if( searchBox ) searchBox.searchTerm = '';
 
-    if( e.detail?.trim().length ) this.AppStateModel.setLocation('/search/'+encodeURIComponent(e.detail.trim()));
+    // Navigate to the search page BEFORE flagging resetSearch (matches the header search in
+    // fin-app). Setting resetSearch while still on '/home' leaves the flag unconsumed — the
+    // search page ignores non-search app-state-updates — so it lingers and gets applied later
+    // (e.g. after the user expands and adjusts the Date filter), collapsing the sidebar.
+    const term = e.detail?.trim();
+    if( term ) {
+      this.AppStateModel.setLocation('/search/'+encodeURIComponent(term));
+      this.AppStateModel.set({ resetSearch: true });
+    }
   }
 
 }

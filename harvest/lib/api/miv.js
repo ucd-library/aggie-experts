@@ -2,7 +2,7 @@
  * MIV postgres projection: grants + roles.
  *
  * Source: ae-std/rel/{relationshipUri}.jsonld for each grant the user has a
- * role on, plus webapp/expert.jsonld for the user identity.
+ * role on, plus ae-std/person.jsonld for the user identity.
  *
  * Target tables (all in the `api` schema):
  *   - "user"             (identity columns only — managed via ApiUser)
@@ -14,7 +14,6 @@
  * Usage:
  *   const miv = new MivApi();
  *   await miv.load({ user, metadata, files });
- *   await miv.purge(expertId);
  */
 
 import { logger, getYearWeek } from '@ucd-lib/experts-commons';
@@ -388,11 +387,11 @@ class MivApi {
    */
   async load({ user, metadata={}, files=[] }) {
     const pgClient = new PgClient();
-    const expertFile = files.find(file => file.type === 'expert');
+    const personFile = files.find(file => file.type === 'personAeStd');
     const grantFiles = files.filter(file => file.type === 'grant');
 
-    const expertDoc = await PgJsonld.readJson(expertFile?.path);
-    const userRecord = this.user.buildUserRecord({ user, metadata, expertDoc });
+    const personDoc = await PgJsonld.readJson(personFile?.path);
+    const userRecord = this.user.buildUserRecord({ user, metadata, aeStdPersonDoc: personDoc });
 
     if (!userRecord?.expert_id || !userRecord?.email) {
       logger.warn({ user }, 'MIV postgres load skipped - missing user/expert identity');
@@ -441,49 +440,6 @@ class MivApi {
     }
   }
 
-  async purge(expertId) {
-    if (!expertId) return;
-
-    const pgClient = new PgClient();
-    const normalizedExpertId = PgJsonld.normalizeExpertId(expertId);
-    if (!normalizedExpertId) return;
-
-    try {
-      await pgClient.query('BEGIN');
-
-      await pgClient.query(
-        `DELETE FROM ${this.schema}.expert_grant_role WHERE expert_id = $1`,
-        [normalizedExpertId]
-      );
-
-      // Remove orphaned grants (no more roles point at them)
-      await pgClient.query(
-        `DELETE FROM ${this.schema}."grant" g
-         WHERE NOT EXISTS (
-           SELECT 1 FROM ${this.schema}.expert_grant_role gr WHERE gr.grant_id = g.grant_id
-         )`
-      );
-
-      // Clear identity columns. Profile columns are managed by SitefarmApi.purge.
-      await pgClient.query(
-        `UPDATE ${this.schema}."user"
-         SET expert_id       = NULL,
-             ucd_person_uuid = NULL,
-             iam_id          = NULL,
-             display_name    = NULL
-         WHERE expert_id = $1`,
-        [normalizedExpertId]
-      );
-
-      await pgClient.query('COMMIT');
-      logger.info({ expertId }, 'MIV postgres expert purge completed');
-    } catch (error) {
-      await pgClient.query('ROLLBACK');
-      throw error;
-    } finally {
-      await pgClient.end();
-    }
-  }
 }
 
 export default MivApi;

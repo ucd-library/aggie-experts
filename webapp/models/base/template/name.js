@@ -6,23 +6,26 @@ const SORT_NUMERIC_LAST_SCRIPT = `
   return doc['name.first'].value == 'other' ? 1 : 0;
 `.replace(/\n\s*/g, ' ').trim();
 
+// Nested-scoped (per-@graph-child) runtime field, mirroring @graph.graph_active_year
+// in commons/lib/elasticsearch/search-templates/complete.mustache. Doc-value based (no
+// _source parsing) and correlates each grant's own start/end since it runs once per
+// nested child, rather than flattening all children's dates into one unpaired list.
 const GRANT_ACTIVE_YEAR_SCRIPT = `
-  def src = params._source;
-  def dti = null;
-  if (src.containsKey('dateTimeInterval')) {
-    dti = src['dateTimeInterval'];
-  } else if (src.containsKey('@graph')) {
-    for (def g : src['@graph']) {
-      if (g.containsKey('dateTimeInterval')) { dti = g['dateTimeInterval']; break; }
-    }
+  boolean hasStart = !doc['@graph.dateTimeInterval.start.dateTime'].empty;
+  boolean hasEnd = !doc['@graph.dateTimeInterval.end.dateTime'].empty;
+  if (!hasStart && !hasEnd) return;
+  Instant startI = hasStart ? doc['@graph.dateTimeInterval.start.dateTime'].value.toInstant() : null;
+  Instant endI = hasEnd ? doc['@graph.dateTimeInterval.end.dateTime'].value.toInstant() : Instant.ofEpochMilli(new Date().getTime());
+  int ys = hasStart ? ZonedDateTime.ofInstant(startI, ZoneOffset.UTC).getYear() : ZonedDateTime.ofInstant(endI, ZoneOffset.UTC).getYear();
+  int ye = ZonedDateTime.ofInstant(endI, ZoneOffset.UTC).getYear();
+  if (!hasStart) {
+    emit(ZonedDateTime.of(ys,1,1,0,0,0,0,ZoneOffset.UTC).toInstant().toEpochMilli());
+    return;
   }
-  if (dti == null) return;
-  def startStr = dti?.start?.dateTime;
-  def endStr = dti?.end?.dateTime;
-  if (startStr == null && endStr == null) return;
-  int ys = startStr != null ? Integer.parseInt(startStr.substring(0,4)) : Integer.parseInt(endStr.substring(0,4));
-  int ye = endStr != null ? Integer.parseInt(endStr.substring(0,4)) : ys;
-  if (ye < ys) ye = ys;
+  if (ye < ys) {
+    emit(ZonedDateTime.of(ys,1,1,0,0,0,0,ZoneOffset.UTC).toInstant().toEpochMilli());
+    return;
+  }
   for (int y = ys; y <= ye; y++) {
     emit(ZonedDateTime.of(y,1,1,0,0,0,0,ZoneOffset.UTC).toInstant().toEpochMilli());
   }
@@ -55,16 +58,16 @@ const source = `{
             ,{"terms":{"hasAvailability.prefLabel":{{#toJson}}availability{{/toJson}}}}
             {{/availability}}
             {{#dateFrom}}
-            ,{"bool":{"should":[
-              {"nested":{"path":"@graph","query":{"bool":{"must":[{"exists":{"field":"@graph.issued"}},{"range":{"@graph.issued":{"gte":"{{dateFrom}}"{{#dateTo}},"lte":"{{dateTo}}"{{/dateTo}}}}}]}}}},
-              {"range":{"grant_active_year":{"gte":"{{dateFrom}}"{{#dateTo}},"lte":"{{dateTo}}"{{/dateTo}}}}}
-            ],"minimum_should_match":1}}
+            ,{"nested":{"path":"@graph","query":{"bool":{"should":[
+              {"bool":{"must":[{"exists":{"field":"@graph.issued"}},{"range":{"@graph.issued":{"gte":"{{dateFrom}}"{{#dateTo}},"lte":"{{dateTo}}"{{/dateTo}}}}}]}},
+              {"range":{"@graph.grant_active_year":{"gte":"{{dateFrom}}"{{#dateTo}},"lte":"{{dateTo}}"{{/dateTo}}}}}
+            ],"minimum_should_match":1}}}}
             {{/dateFrom}}
             {{^dateFrom}}{{#dateTo}}
-            ,{"bool":{"should":[
-              {"nested":{"path":"@graph","query":{"bool":{"must":[{"exists":{"field":"@graph.issued"}},{"range":{"@graph.issued":{"lte":"{{dateTo}}"}}}]}}}},
-              {"range":{"grant_active_year":{"lte":"{{dateTo}}"}}}
-            ],"minimum_should_match":1}}
+            ,{"nested":{"path":"@graph","query":{"bool":{"should":[
+              {"bool":{"must":[{"exists":{"field":"@graph.issued"}},{"range":{"@graph.issued":{"lte":"{{dateTo}}"}}}]}},
+              {"range":{"@graph.grant_active_year":{"lte":"{{dateTo}}"}}}
+            ],"minimum_should_match":1}}}}
             {{/dateTo}}{{/dateFrom}}
           ]
         }
@@ -81,18 +84,24 @@ const source = `{
   "from": "{{from}}{{^from}}0{{/from}}",
   "size": "{{size}}{{^size}}25{{/size}}",
   "runtime_mappings": {
-    "grant_active_year": {
+    "@graph.grant_active_year": {
       "type": "date",
       "script": { "source": "${GRANT_ACTIVE_YEAR_SCRIPT}" }
     }
-  },
-  "aggs": {
+  }
+  {{#categoryAggs}}
+  ,"aggs": {
     "status": {"terms":{"field":"status","size":10}},
-    "type": {"terms":{"field":"type","size":10}},
+    "type": {"terms":{"field":"type","size":10}}
+  }
+  {{/categoryAggs}}
+  {{#yearAggs}}
+  ,"aggs": {
     "work_years": {"nested":{"path":"@graph"},"aggs":{"years":{"date_histogram":{"field":"@graph.issued","calendar_interval":"year","min_doc_count":1,"time_zone":"UTC"}}}},
-    "grant_years": {"date_histogram":{"field":"grant_active_year","calendar_interval":"year","min_doc_count":1,"time_zone":"UTC"}},
+    "grant_years": {"nested":{"path":"@graph"},"aggs":{"years":{"date_histogram":{"field":"@graph.grant_active_year","calendar_interval":"year","min_doc_count":1,"time_zone":"UTC"}}}},
     "expert_years": {"nested":{"path":"@graph"},"aggs":{"years":{"date_histogram":{"field":"@graph.issued","calendar_interval":"year","min_doc_count":1,"time_zone":"UTC"}}}}
   }
+  {{/yearAggs}}
 }`;
 
 module.exports = {

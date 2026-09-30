@@ -34,6 +34,17 @@ class SchemaModel extends BaseModel {
   }
 
   /**
+   * @method getPublicIndex
+   * @description load the elastic search index currently aliased to `public` for a given type
+   *
+   * @param {String} type - 'experts' | 'works' | 'grants'
+   * @returns {Promise} resolves to record
+   */
+  async getPublicIndex(type) {
+    return this.service.getPublicIndex(type);
+  }
+
+  /**
    * @method deleteIndex
    * @description delete an index in elastic search
    *

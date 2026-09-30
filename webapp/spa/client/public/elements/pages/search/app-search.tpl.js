@@ -77,10 +77,10 @@ return html`
 
     .search-container .refine-search h3 {
       color: var(--ucd-blue-100, #022851);
-      font-size: 2.06938rem;
+      font-size: 1.7425rem;
       font-style: italic;
       font-weight: 700;
-      line-height: 2.48313rem;
+      line-height: 1.2;
       margin-top: 0;
       margin-bottom: 1.78rem;
     }
@@ -194,6 +194,8 @@ return html`
 
     .collapsible-filter-heading h4 {
       margin: 0;
+      font-size: 1.207rem;
+      line-height: 1.2;
       font-weight: 700;
       color: var(--ucd-blue-100, #022851);
     }
@@ -300,6 +302,10 @@ return html`
       padding: 0.5rem 0;
     }
 
+    .affiliation-sub-row--single {
+      cursor: pointer;
+    }
+
     .affiliation-sub-checkbox {
       flex-shrink: 0;
       margin-top: 0.15rem;
@@ -390,7 +396,7 @@ return html`
     .refine-search .search-seperator {
       width: 100%;
       margin: 0.75rem 0;
-      border-top: 1px dotted #b0c4d8;
+      border-top: 1px solid var(--color-aggie-blue-40, #b0c4d8);
     }
 
     .refine-search .search-seperator--large-dots,
@@ -437,7 +443,7 @@ return html`
       -webkit-appearance: none;
       width: 20px;
       height: 20px;
-      border: 1px solid var(--ucd-blue-70, #73ABDD);
+      border: 1px solid var(--color-aggie-blue-80, #13639E);
       background: var(--white, #FFF);
       flex-shrink: 0;
       cursor: pointer;
@@ -445,7 +451,7 @@ return html`
     }
 
     input[type="checkbox"]:checked {
-      background: var(--ucd-blue-70, #73ABDD);
+      background: var(--color-aggie-blue-80, #13639E);
     }
 
     input[type="checkbox"]:checked::after {
@@ -462,7 +468,7 @@ return html`
     }
 
     input[type="checkbox"]:indeterminate {
-      background: var(--ucd-blue-70, #73ABDD);
+      background: var(--color-aggie-blue-80, #13639E);
     }
 
     input[type="checkbox"]:indeterminate::after {
@@ -852,6 +858,7 @@ return html`
 
       <hr class="search-seperator search-seperator--large-dots">
 
+      ${this.displayedResults.length > 0 ? html`
       <div class="collapsible-filter-heading" @click="${() => { this.affiliationCollapsed = !this.affiliationCollapsed; }}">
         <h4>Affiliation</h4>
         <span class="filter-collapse-arrow">
@@ -884,60 +891,10 @@ return html`
           </svg>
         </div>
         <div class="affiliation-checkboxes">
-          ${(this.orgLookup || []).map(cat => {
-            const matchingSubs = cat.subCategories.map(sub => ({
-              ...sub,
-              depts: sub.depts.filter(d =>
-                !this.affiliationSearch ||
-                d.name.toLowerCase().includes(this.affiliationSearch.toLowerCase()) ||
-                sub.label.toLowerCase().includes(this.affiliationSearch.toLowerCase())
-              )
-            })).filter(sub => sub.depts.length);
-            if( !matchingSubs.length ) return '';
-            return html`
-              <div class="affiliation-group-label">${cat.label}</div>
-              ${matchingSubs.map(sub => {
-                const subCodes = sub.depts.map(d => d.deptCode);
-                const checkedCount = subCodes.filter(c => this.dept.includes(c)).length;
-                const allChecked = checkedCount === subCodes.length;
-                const someChecked = checkedCount > 0 && !allChecked;
-                const expanded = this.expandedSubCategories.includes(sub.label);
-                return html`
-                  <div class="affiliation-sub-row">
-                    <input type="checkbox"
-                      class="affiliation-sub-checkbox"
-                      .indeterminate="${someChecked}"
-                      .checked="${allChecked}"
-                      @change="${() => this._onSubCategoryCheck(sub.depts)}">
-                    <span class="affiliation-toggle" @click="${() => this._toggleSubCategory(sub.label)}">
-                      <span class="affiliation-sub-label">${sub.label}</span>
-                      <span class="affiliation-sub-caret">
-                        ${expanded
-                          ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="6" height="6"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
-                          : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="4" height="6"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
-                        }
-                      </span>
-                    </span>
-                  </div>
-                  ${expanded ? html`
-                    <div class="affiliation-dept-list">
-                      ${sub.depts.map(d => html`
-                        <label class="affiliation-dept-row">
-                          <input type="checkbox"
-                            .value="${d.deptCode}"
-                            .checked="${this.dept.includes(d.deptCode)}"
-                            @change="${this._onDeptChange}">
-                          ${d.name}
-                        </label>
-                      `)}
-                    </div>
-                  ` : ''}
-                `;
-              })}
-            `;
-          })}
+          ${this._renderAffiliationCheckboxes(this._deptMatchCodes)}
         </div>
       </div>
+      ` : ''}
 
       <div class="open-to-container" ?hidden="${!this.showOpenTo}">
         <hr class="search-seperator">
@@ -978,11 +935,11 @@ return html`
         ` : ''}
       </div>
 
-      ${this.displayedResults.length > 0 ? html`
+      ${this.displayedResults.length > 0 || this.filterByDate ? html`
         <div class="range-filter-container ${!this.displayedResults.length && !this.filterByDateLabel ? 'invisible' : ''}">
           <hr class="search-seperator">
 
-          <div class="collapsible-filter-heading" @click="${() => { this.dateCollapsed = !this.dateCollapsed; if( !this.dateCollapsed ) requestAnimationFrame(() => this._refreshRange()); }}">
+          <div class="collapsible-filter-heading" @click="${() => { this.dateCollapsed = !this.dateCollapsed; if( !this.dateCollapsed ) requestAnimationFrame(() => this._refreshRange(true)); }}">
             <h4>Date</h4>
             <span class="filter-collapse-arrow">
               ${this.dateCollapsed
@@ -1015,7 +972,7 @@ return html`
         </div>
       ` : ''}
 
-      <hr class="search-seperator">
+      ${this.displayedResults.length > 0 || this.filterByDate ? html`<hr class="search-seperator">` : ''}
       <p class="search-tips-tooltip"><strong>Tip: </strong> <a href="/search-tips">Search operators</a> can improve results</p>
 
     </div>
@@ -1069,6 +1026,7 @@ return html`
 
             <hr class="search-seperator search-seperator--large-dots">
 
+            ${this.displayedResults.length > 0 ? html`
             <div class="collapsible-filter-heading" @click="${() => { this.affiliationCollapsed = !this.affiliationCollapsed; }}">
               <h4>Affiliation</h4>
               <span class="filter-collapse-arrow">
@@ -1101,60 +1059,10 @@ return html`
                 </svg>
               </div>
               <div class="affiliation-checkboxes">
-                ${(this.orgLookup || []).map(cat => {
-                  const matchingSubs = cat.subCategories.map(sub => ({
-                    ...sub,
-                    depts: sub.depts.filter(d =>
-                      !this.affiliationSearch ||
-                      d.name.toLowerCase().includes(this.affiliationSearch.toLowerCase()) ||
-                      sub.label.toLowerCase().includes(this.affiliationSearch.toLowerCase())
-                    )
-                  })).filter(sub => sub.depts.length);
-                  if( !matchingSubs.length ) return '';
-                  return html`
-                    <div class="affiliation-group-label">${cat.label}</div>
-                    ${matchingSubs.map(sub => {
-                      const subCodes = sub.depts.map(d => d.deptCode);
-                      const checkedCount = subCodes.filter(c => this.dept.includes(c)).length;
-                      const allChecked = checkedCount === subCodes.length;
-                      const someChecked = checkedCount > 0 && !allChecked;
-                      const expanded = this.expandedSubCategories.includes(sub.label);
-                      return html`
-                        <div class="affiliation-sub-row">
-                          <input type="checkbox"
-                            class="affiliation-sub-checkbox"
-                            .indeterminate="${someChecked}"
-                            .checked="${allChecked}"
-                            @change="${() => this._onSubCategoryCheck(sub.depts)}">
-                          <span class="affiliation-toggle" @click="${() => this._toggleSubCategory(sub.label)}">
-                            <span class="affiliation-sub-label">${sub.label}</span>
-                            <span class="affiliation-sub-caret">
-                              ${expanded
-                                ? html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" width="6" height="6"><path d="M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
-                                : html`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 512" width="4" height="6"><path d="M246.6 278.6c12.5-12.5 12.5-32.8 0-45.3l-128-128c-9.2-9.2-22.9-11.9-34.9-6.9s-19.8 16.6-19.8 29.6l0 256c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l128-128z" fill="var(--ucd-blue-80,#13639E)"/></svg>`
-                              }
-                            </span>
-                          </span>
-                        </div>
-                        ${expanded ? html`
-                          <div class="affiliation-dept-list">
-                            ${sub.depts.map(d => html`
-                              <label class="affiliation-dept-row">
-                                <input type="checkbox"
-                                  .value="${d.deptCode}"
-                                  .checked="${this.dept.includes(d.deptCode)}"
-                                  @change="${this._onDeptChange}">
-                                ${d.name}
-                              </label>
-                            `)}
-                          </div>
-                        ` : ''}
-                      `;
-                    })}
-                  `;
-                })}
+                ${this._renderAffiliationCheckboxes(this._deptMatchCodes)}
               </div>
             </div>
+            ` : ''}
 
             <div class="open-to-container" ?hidden="${!this.showOpenTo}">
               <hr class="search-seperator">
@@ -1197,7 +1105,7 @@ return html`
 
             <div class="range-filter-container ${!this.displayedResults.length && !this.filterByDateLabel ? 'invisible' : ''}">
               <hr class="search-seperator">
-              <div class="collapsible-filter-heading" @click="${() => { this.dateCollapsed = !this.dateCollapsed; if( !this.dateCollapsed ) requestAnimationFrame(() => this._refreshRange()); }}">
+              <div class="collapsible-filter-heading" @click="${() => { this.dateCollapsed = !this.dateCollapsed; if( !this.dateCollapsed ) requestAnimationFrame(() => this._refreshRange(true)); }}">
                 <h4>Date</h4>
                 <span class="filter-collapse-arrow">
                   ${this.dateCollapsed
@@ -1229,7 +1137,7 @@ return html`
               </div>
             </div>
 
-            <hr class="search-seperator">
+            ${this.displayedResults.length > 0 ? html`<hr class="search-seperator">` : ''}
             <p class="search-tips-tooltip"><strong>Tip: </strong> <a href="/search-tips">Search operators</a> can improve results</p>
         </div>
           <div class="mobile-view-btn-wrap">
@@ -1275,7 +1183,7 @@ return html`
         })()}
       </div>
       <div class="search-results-heading">
-        <div class="results-count">${this.totalResultsCount != null ? this.totalResultsCount : this.resultsLoading} result${this.totalResultsCount === 1 ? '' : 's'} for "${decodeURIComponent(this.searchTerm)}"</div>
+        <div class="results-count">${this._formattedTotal()} result${this.totalResultsCount === 1 ? '' : 's'} for "${decodeURIComponent(this.searchTerm)}"</div>
         <div class="download">
           <button class="btn btn--invert" style="width: fit-content;" ?disabled="${!this.resultsSelected}" @click="${this._downloadClicked}">Download</button>
         </div>

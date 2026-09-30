@@ -78,7 +78,7 @@ export default function render() {
     </style>
 
     <div class="filter-result ${this.active ? 'active' : ''} ${this.subfilter ? 'subfilter' : ''} ${this.mobile ? 'mobile' : ''}">
-      <ucdlib-icon icon="ucdlib-experts:${this.icon}"></ucdlib-icon>
+      ${this.icon ? html`<ucdlib-icon icon="ucdlib-experts:${this.icon}"></ucdlib-icon>` : ''}
       <p class="label">${this.label}</p>
       <p class="count">${this.count}</p>
       <svg style="display: none" xmlns="http://www.w3.org/2000/svg" width="17" height="52" viewBox="0 0 17 52" fill="none">
