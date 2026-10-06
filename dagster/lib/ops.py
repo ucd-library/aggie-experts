@@ -2,6 +2,7 @@
 Dagster op definitions for fan-out style jobs (dynamic mapping over child folders/items).
 """
 import subprocess
+import json
 
 import dagster as dg
 from dagster import DynamicOut, DynamicOutput, Out, Output, RetryPolicy
@@ -12,6 +13,16 @@ from .utils import CODE_VERSION, exec
 CASK_LS_PAGE_LIMIT = 200
 
 
+def _exec_json_cmd(cmd: list) -> dict:
+    """Run a command and parse its last line as JSON."""
+    result = subprocess.run(
+        cmd, capture_output=True, text=True, check=True
+    )
+    try:
+        return json.loads(result.stdout)
+    except json.JSONDecodeError as e:
+        raise RuntimeError(f"Failed to parse JSON from command {cmd}: {result}") from e
+
 def _list_directory_page(directory: str, page: int, limit: int) -> dict:
     """Fetch a single page of a CaskFS directory listing.
 
@@ -20,7 +31,10 @@ def _list_directory_page(directory: str, page: int, limit: int) -> dict:
     @param {int} limit - page size
     @returns {dict} parsed `cask ls` JSON response: {files, directories, totalCount}
     """
-    return exec(["cask", "ls", directory, "-o", "json", "-l", str(limit), "-n", str(page)])
+    result = _exec_json_cmd(["cask", "ls", directory, "-o", "json", "-l", str(limit), "-n", str(page)])
+    if "error" in result:
+        raise RuntimeError(f"cask ls failed for {directory} (page {page}): {result['error']}")
+    return result
 
 
 def _crawl_year_week_delete_items(year_week: str, page_limit: int = CASK_LS_PAGE_LIMIT):
@@ -42,6 +56,7 @@ def _crawl_year_week_delete_items(year_week: str, page_limit: int = CASK_LS_PAGE
             result = _list_directory_page(directory, page, page_limit)
             files = result.get("files", [])
             directories = result.get("directories", [])
+            total_count = result.get("totalCount", 0)
 
             for file in files:
                 yield {"path": file["filepath"], "recursive": False}
@@ -52,9 +67,15 @@ def _crawl_year_week_delete_items(year_week: str, page_limit: int = CASK_LS_PAGE
                 else:
                     stack.append(child["fullname"])
 
+            items_seen = page * page_limit
             if not files and not directories:
+                if items_seen < total_count:
+                    raise RuntimeError(
+                        f"cask ls returned an empty page for {directory} (page {page}) "
+                        f"but totalCount={total_count} suggests more items remain"
+                    )
                 break
-            if page * page_limit >= result.get("totalCount", 0):
+            if items_seen >= total_count:
                 break
             page += 1
 
@@ -80,25 +101,38 @@ def list_year_week_delete_items(context: dg.OpExecutionContext, config: PurgeYea
         ).strip()
 
     context.log.info(f"Crawling CaskFS delete items for year-week {year_week}")
-    yield Output(year_week, "year_week")
 
     batch = []
     batch_index = 0
+    batch_size = 0
     total_items = 0
 
     for item in _crawl_year_week_delete_items(year_week):
         batch.append(item)
-        total_items += 1
-        if len(batch) >= config.batch_size:
+        if item["recursive"]:
+            batch_size += 50 # This will give a max of 8 folders per batch by default.
+        else:
+            batch_size += 1 # otherwise up to 400 files per batch by default.
+        if batch_size >= config.batch_size:
             yield DynamicOutput(batch, mapping_key=f"batch_{batch_index}", output_name="delete_item_batches")
             batch_index += 1
+            batch_size = 0
             batch = []
 
     if batch:
         yield DynamicOutput(batch, mapping_key=f"batch_{batch_index}", output_name="delete_item_batches")
         batch_index += 1
 
-    context.log.info(f"Found {total_items} delete items in {batch_index} batches for year-week {year_week}")
+    if total_items == 0:
+        context.log.warning(f"No delete items found for year-week {year_week} (crawl completed with no errors)")
+    else:
+        context.log.info(f"Found {total_items} delete items in {batch_index} batches for year-week {year_week}")
+
+    yield Output(
+        year_week,
+        "year_week",
+        metadata={"total_items": total_items, "total_batches": batch_index},
+    )
 
 
 @dg.op(

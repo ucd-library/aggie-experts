@@ -7,7 +7,7 @@ run_storage:
   class: PostgresRunStorage
   config:
     postgres_db:
-      username: 
+      username:
         env: DAGSTER_POSTGRES_USER
       password:
         env: DAGSTER_POSTGRES_PASSWORD
@@ -17,13 +17,14 @@ run_storage:
         env: DAGSTER_POSTGRES_PORT
       db_name:
         env: DAGSTER_POSTGRES_DB
+      scheme: postgresql+psycopg2
 
 event_log_storage:
   module: dagster_postgres.event_log
   class: PostgresEventLogStorage
   config:
     postgres_db:
-      username: 
+      username:
         env: DAGSTER_POSTGRES_USER
       password:
         env: DAGSTER_POSTGRES_PASSWORD
@@ -33,13 +34,14 @@ event_log_storage:
         env: DAGSTER_POSTGRES_PORT
       db_name:
         env: DAGSTER_POSTGRES_DB
+      scheme: postgresql+psycopg2
 
 schedule_storage:
   module: dagster_postgres.schedule_storage
   class: PostgresScheduleStorage
   config:
     postgres_db:
-      username: 
+      username:
         env: DAGSTER_POSTGRES_USER
       password:
         env: DAGSTER_POSTGRES_PASSWORD
@@ -49,6 +51,7 @@ schedule_storage:
         env: DAGSTER_POSTGRES_PORT
       db_name:
         env: DAGSTER_POSTGRES_DB
+      scheme: postgresql+psycopg2
 
 run_coordinator:
   module: dagster.core.run_coordinator

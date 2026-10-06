@@ -28,7 +28,7 @@ class PurgeYearWeekConfig(Config):
         description="Optional year-week in format YYYY-WW"
     )
     batch_size: int = Field(
-        default=200,
+        default=400,
         description="Number of CaskFS delete items (files or user folders) per batch/op invocation"
     )
 

@@ -10,7 +10,8 @@ import signal
 import atexit
 
 import dagster as dg
-import psycopg
+import psycopg2
+import psycopg2.extras
 
 
 # ---------------------------------------------------------------------------
@@ -42,19 +43,20 @@ NON_TERMINAL = [
 # Database connection
 # ---------------------------------------------------------------------------
 
-conn = psycopg.connect(
+conn = psycopg2.connect(
     host=os.getenv('DAGSTER_POSTGRES_HOST', 'localhost'),
     dbname=os.getenv('DAGSTER_POSTGRES_DB', 'dagster'),
     user=os.getenv('DAGSTER_POSTGRES_USER', 'postgres'),
     password=os.getenv('DAGSTER_POSTGRES_PASSWORD', 'postgres')
 )
+psycopg2.extras.register_default_jsonb(conn_or_curs=conn)
 
 
 # ---------------------------------------------------------------------------
 # Subprocess helper
 # ---------------------------------------------------------------------------
 
-def exec(cmd, check=True, capture_output=True, text=True, stdin_data=None, no_json_parse=False):
+def exec(cmd, check=True, capture_output=True, print_output=True, text=True, stdin_data=None, no_json_parse=False):
     """Helper function to run a command, stream its output, and return the last line as JSON."""
     print(f"Executing command: {' '.join(cmd)}")
 
@@ -90,8 +92,9 @@ def exec(cmd, check=True, capture_output=True, text=True, stdin_data=None, no_js
 
         assert process.stdout is not None
         for line in process.stdout:
-            sys.stdout.write(line)
-            sys.stdout.flush()
+            if print_output:
+                sys.stdout.write(line)
+                sys.stdout.flush()
             last_line = line
 
         rc = process.wait()
