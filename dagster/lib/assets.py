@@ -585,11 +585,11 @@ def purge_stale_user_partitions(context: AssetExecutionContext, config: PurgeSta
     }
 )
 def purge_year_week_cask_files(context: AssetExecutionContext, config: PurgeYearWeekConfig) -> None:
-    """Purge all files from CaskFS before a given year-week.  Defaults to 5 weeks ago if year-week not provided."""
+    """Purge all files from CaskFS before a given year-week.  Defaults to 4 weeks ago if year-week not provided."""
     year_week = config.year_week
     if not year_week:
         year_week = subprocess.check_output(
-            ["experts", "harvest", "year-week", "--weeks-ago", "5"], text=True
+            ["experts", "harvest", "year-week", "--weeks-ago", "4"], text=True
         ).strip()
 
     print(f"Purging CaskFS files for year-week {year_week}")
