@@ -543,7 +543,7 @@ def purge_user_cask_files(context: AssetExecutionContext, config: YearWeekConfig
     if not year_week:
         raise ValueError("year_week must be provided in YearWeekConfig")
 
-    exec(["cask", "rm", "-d", f"/weekly/{year_week}/{user_id}"])
+    exec(["cask", "rm", "-d", f"/weekly/{year_week}/{user_id}", "--ignore-missing"])
     return None
 
 @dg.asset(
@@ -593,7 +593,7 @@ def purge_year_week_cask_files(context: AssetExecutionContext, config: PurgeYear
         ).strip()
 
     print(f"Purging CaskFS files for year-week {year_week}")
-    exec(["cask", "rm", "-d", f"/weekly/{year_week}"], no_json_parse=True)
+    exec(["cask", "rm", "-d", f"/weekly/{year_week}", "--ignore-missing"], no_json_parse=True)
     return None
 
 
