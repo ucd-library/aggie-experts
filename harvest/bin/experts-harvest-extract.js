@@ -8,6 +8,7 @@ import {
 import cache from '../lib/cache.js';
 import { enableFromCli } from '../lib/reporting/index.js';
 import IAM from '../lib/extract/iam.js';
+import Rosetta from '../lib/extract/rosetta.js';
 import wrapUserDomain from '../lib/user-domain.js';
 
 const program = new Command();
@@ -94,6 +95,24 @@ program.command('view-iam')
     await iamClient.getKey();
     const profile = await iamClient.profile(user);
     console.log(JSON.stringify(profile.json, null, 2));
+  });
+
+program.command('view-rosetta')
+  .description('View raw Rosetta /people records using arbitrary filters')
+  .option('--filter <keyValue>', 'key=value filter to pass to the endpoint, repeatable (comma-separate a value for multi-value filters, e.g. emails=a@ucdavis.edu,b@ucdavis.edu)', (val, prev) => prev.concat([val]), [])
+  .option('--endpoint <name>', 'rosetta endpoint to query: people, peopleStudents, peopleEmployees, peopleFaculty, peopleExternal', 'people')
+  .option('--post', 'use POST /people (identity-filter-array search) instead of GET')
+  .action(async (options) => {
+    const rosettaClient = new Rosetta();
+    const filters = {};
+    for (const pair of options.filter) {
+      const [key, value] = pair.split('=');
+      filters[key] = value.includes(',') ? value.split(',') : value;
+    }
+    const result = options.post
+      ? await rosettaClient.peopleSearch(filters, { endpoint: options.endpoint })
+      : await rosettaClient.people(filters, { endpoint: options.endpoint });
+    console.log(JSON.stringify(result, null, 2));
   });
 
 program.parse(process.argv);

@@ -365,6 +365,46 @@ const config = {
     }
   },
 
+  rosetta : {
+    env : env.EXPERTS_ROSETTA_ENV || 'dev',
+    timeout : env.EXPERTS_ROSETTA_TIMEOUT || 30000,
+
+    dev: {
+      url: 'https://rosetta.dev.api.ucdavis.edu/api/v1',
+      secretName: 'ucd-iam-rosetta-api-dev',
+      timeout: 30000,
+      oauth: {
+        tokenUrl: 'https://oauth.dev.api.ucdavis.edu/token',
+        scope: 'read:public'
+      },
+      endpoints: {
+        people: '/people',
+        peopleStudents: '/people/students',
+        peopleEmployees: '/people/employees',
+        peopleFaculty: '/people/faculty',
+        peopleExternal: '/people/external'
+      }
+    },
+    prod: {
+      // unverified - spec only documents the dev instance; update once a prod
+      // rosetta instance/secret exists
+      url: 'https://rosetta.api.ucdavis.edu/api/v1',
+      secretName: '',
+      timeout: 30000,
+      oauth: {
+        tokenUrl: 'https://oauth.api.ucdavis.edu/token',
+        scope: 'read:public read:sensitive'
+      },
+      endpoints: {
+        people: '/people',
+        peopleStudents: '/people/students',
+        peopleEmployees: '/people/employees',
+        peopleFaculty: '/people/faculty',
+        peopleExternal: '/people/external'
+      }
+    }
+  },
+
   vocab : {
     ucopFile : !isBrowser ? path.resolve(scriptDir, 'vocabularies/experts.ucdavis.edu%2Fucop/pos_codes.jsonld') : null
   },

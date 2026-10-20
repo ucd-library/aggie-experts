@@ -3,7 +3,7 @@ import {
   config,
   getYearWeek
 } from '@ucd-lib/experts-commons';
-import CaskFS from '/opt/caskfs/src/index.js';
+import CaskFS from '@ucd-lib/caskfs';
 import os from 'os';
 
 class FsCache {
