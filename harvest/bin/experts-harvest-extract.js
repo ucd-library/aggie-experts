@@ -20,7 +20,8 @@ program.command('run')
   .option('--root-dir <root-dir>', 'Root directory for extracted data.  Respects env EXPERTS_ROOT_DIR')
   .option('--reporting', 'Enable reporting for this extraction')
   .option('--reporting-job-id <job-id>', 'Job ID for reporting')
-  .option('--rosetta', 'Also fetch and cache the new IAM rosetta profile (iam/rosetta-profile.json)')
+  .option('--rosetta', 'Also fetch and cache the new IAM rosetta profile (iam/rosetta-profile.json) (defaults from EXPERTS_ROSETTA_ENABLED env var)', config.rosetta.enabled)
+  .option('--no-rosetta', 'Force-disable the rosetta pipeline for this run')
   .action(async (user, options) => {
     user = wrapUserDomain(user);
 

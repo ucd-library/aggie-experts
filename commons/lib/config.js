@@ -367,6 +367,7 @@ const config = {
   },
 
   rosetta : {
+    enabled : env.EXPERTS_ROSETTA_ENABLED === 'true',
     env : env.EXPERTS_ROSETTA_ENV || 'dev',
     timeout : env.EXPERTS_ROSETTA_TIMEOUT || 30000,
 

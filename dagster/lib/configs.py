@@ -1,10 +1,20 @@
 """
 Dagster config schemas and partition definitions shared across assets, jobs, and sensors.
 """
+import os
+
 from dagster import Config, MultiPartitionsDefinition
 import dagster as dg
 from typing import Any, Literal
 from pydantic import Field
+
+
+def _rosetta_default() -> bool:
+    """Deployment-level default for the rosetta identity pipeline, read from
+    the same env var the harvest CLI itself reads (EXPERTS_ROSETTA_ENABLED).
+    Override per-run via asset/job config (e.g. Dagit launchpad or a
+    schedule's run_config)."""
+    return os.getenv("EXPERTS_ROSETTA_ENABLED", "false").strip().lower() == "true"
 
 
 # ---------------------------------------------------------------------------
@@ -14,9 +24,20 @@ from pydantic import Field
 class FetchUserListConfig(Config):
     group_id: Literal['experts', 'dev', 'sandbox'] = 'experts'  # Default value for group ID
 
+
+class RosettaConfig(Config):
+    rosetta: bool = Field(
+        default_factory=_rosetta_default,
+        description="Use the rosetta identity pipeline instead of the legacy IAM one."
+    )
+
 # Make sure this matches /commons/lib/config.js:elasticsearch.aliases
 class LoadUserConfig(Config):
     alias: Literal['public', 'latest', 'all'] = 'latest'  # Default alias/index for loading
+    rosetta: bool = Field(
+        default_factory=_rosetta_default,
+        description="Use the rosetta identity pipeline instead of the legacy IAM one."
+    )
 
 class YearWeekConfig(Config):
     year_week: str = Field(..., description="Year-week for CaskFS purge in format YYYY-WW")

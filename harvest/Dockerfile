@@ -18,6 +18,7 @@ WORKDIR /opt/caskfs
 COPY --from=caskfs /opt/caskfs/package.json package.json
 RUN npm install --omit=dev
 COPY --from=caskfs /opt/caskfs/src src
+RUN npm link
 RUN mkdir -p /cork-build-info
 COPY --from=caskfs /cork-build-info/caskfs.json /cork-build-info/caskfs.json
 
@@ -27,7 +28,8 @@ WORKDIR /opt/harvest
 COPY harvest/package.json /opt/harvest/package.json
 COPY harvest/package-lock.json /opt/harvest/package-lock.json
 RUN cd /opt/harvest && \
-    npm install --omit=dev
+    npm install --omit=dev && \
+    npm link @ucd-lib/caskfs
 
 COPY harvest/bin /opt/harvest/bin
 COPY harvest/lib /opt/harvest/lib

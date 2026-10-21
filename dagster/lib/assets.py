@@ -10,6 +10,7 @@ from dagster import AssetExecutionContext, AutoMaterializePolicy
 from .configs import (
     users_partitions,
     FetchUserListConfig,
+    RosettaConfig,
     LoadUserConfig,
     YearWeekConfig,
     PurgeYearWeekConfig,
@@ -158,7 +159,7 @@ def fetch_user_list_from_cdl(context, config: FetchUserListConfig) -> None:
     deps=[init_databases],
     group_name="etl",
 )
-def extract_user(context) -> None:
+def extract_user(context, config: RosettaConfig) -> None:
     """Extract user data from CDL and store in CaskFS."""
     user_id = context.partition_key
 
@@ -169,6 +170,7 @@ def extract_user(context) -> None:
     run = context.dagster_run
 
     cmd = ["experts", "harvest", "extract", "run", user_id, "--reporting-job-id", run.run_id]
+    cmd.append("--rosetta" if config.rosetta else "--no-rosetta")
 
     metadata = {"user": user_id}
 
@@ -187,12 +189,14 @@ def extract_user(context) -> None:
     deps=[extract_user],
     group_name="etl",
 )
-def transform_user_standard(context: AssetExecutionContext) -> None:
+def transform_user_standard(context: AssetExecutionContext, config: RosettaConfig) -> None:
     """Transform user data into the Aggie Experts Standard linked data format."""
     user_id = context.partition_key
     run = context.dagster_run
 
-    exec(["experts", "harvest", "transform", "ae-std", user_id, "--reporting-job-id", run.run_id])
+    cmd = ["experts", "harvest", "transform", "ae-std", user_id, "--reporting-job-id", run.run_id]
+    cmd.append("--rosetta" if config.rosetta else "--no-rosetta")
+    exec(cmd)
 
     context.add_output_metadata(metadata={"id": user_id})
     return None
@@ -205,12 +209,14 @@ def transform_user_standard(context: AssetExecutionContext) -> None:
     deps=[transform_user_standard],
     group_name="etl",
 )
-def transform_user_webapp(context: AssetExecutionContext) -> None:
+def transform_user_webapp(context: AssetExecutionContext, config: RosettaConfig) -> None:
     """Transform user data into the Aggie Experts Elasticsearch Webapp linked data format."""
     user_id = context.partition_key
     run = context.dagster_run
 
-    exec(["experts", "harvest", "transform", "webapp", user_id, "--reporting-job-id", run.run_id])
+    cmd = ["experts", "harvest", "transform", "webapp", user_id, "--reporting-job-id", run.run_id]
+    cmd.append("--rosetta" if config.rosetta else "--no-rosetta")
+    exec(cmd)
 
     context.add_output_metadata(metadata={"id": user_id})
     return None
@@ -228,7 +234,9 @@ def load_user(context: AssetExecutionContext, config: LoadUserConfig) -> None:
     user_id = context.partition_key
     run = context.dagster_run
 
-    result = exec(["experts", "harvest", "load", user_id, "--reporting-job-id", run.run_id, "--alias", config.alias])
+    cmd = ["experts", "harvest", "load", user_id, "--reporting-job-id", run.run_id, "--alias", config.alias]
+    cmd.append("--rosetta" if config.rosetta else "--no-rosetta")
+    result = exec(cmd)
 
     metadata = {
         "id": user_id,

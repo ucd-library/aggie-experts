@@ -20,7 +20,8 @@ program
   .option('--reporting', 'Enable reporting for this transformation')
   .option('--reporting-job-id <job-id>', 'Job ID for reporting')
   .option('--std-sort', 'Sort the ae-std output files for debugging')
-  .option('--rosetta', 'Use the new IAM rosetta-based person transform instead of the legacy transform')
+  .option('--rosetta', 'Use the new IAM rosetta-based person transform instead of the legacy transform (defaults from EXPERTS_ROSETTA_ENABLED env var)', config.rosetta.enabled)
+  .option('--no-rosetta', 'Force-disable the rosetta pipeline for this run')
   .action(async (userId, options) => {
 
     userId = wrapUserDomain(userId);
@@ -97,7 +98,8 @@ program
   .option('--reporting', 'Enable reporting for this transformation')
   .option('--reporting-job-id <job-id>', 'Job ID for reporting')
   .option('--std-sort', 'Sort the ae-std output files for debugging')
-  .option('--rosetta', 'Use the rosetta-prefixed ae-std/webapp files instead of the legacy ones')
+  .option('--rosetta', 'Use the rosetta-prefixed ae-std/webapp files instead of the legacy ones (defaults from EXPERTS_ROSETTA_ENABLED env var)', config.rosetta.enabled)
+  .option('--no-rosetta', 'Force-disable the rosetta pipeline for this run')
   .action(async (userId, options) => {
 
     userId = wrapUserDomain(userId);
@@ -181,7 +183,8 @@ program
   .command('webapp-scholarly-work')
   .description('transform single scholarly work from aggie experts standard format to webapp format.  Requires ALL ae-std transforms to have been run first for proper execution.')
   .argument('<subject-uri>', 'Subject URI of the scholarly work to transform')
-  .option('--rosetta', 'Use the rosetta-prefixed ae-std files for related expert lookups')
+  .option('--rosetta', 'Use the rosetta-prefixed ae-std files for related expert lookups (defaults from EXPERTS_ROSETTA_ENABLED env var)', config.rosetta.enabled)
+  .option('--no-rosetta', 'Force-disable the rosetta pipeline for this run')
   .action(async (subjectUri, options) => {
 
     // use a connection pool to speed up writes
@@ -199,7 +202,8 @@ program
   .command('webapp-base-expert')
   .description('transform single expert from aggie experts standard format to webapp format.  Requires ALL ae-std transforms to have been run first for proper execution.')
   .argument('<email>', 'Email of the expert to transform')
-  .option('--rosetta', 'Use the rosetta-prefixed ae-std/webapp files instead of the legacy ones')
+  .option('--rosetta', 'Use the rosetta-prefixed ae-std/webapp files instead of the legacy ones (defaults from EXPERTS_ROSETTA_ENABLED env var)', config.rosetta.enabled)
+  .option('--no-rosetta', 'Force-disable the rosetta pipeline for this run')
   .action(async (email, options) => {
 
     // use a connection pool to speed up writes
@@ -217,7 +221,8 @@ program
   .description('transform single expert from aggie experts standard format to webapp format.  Requires ALL ae-std transforms to have been run first for proper execution.')
   .argument('<email>', 'Email of the expert to transform')
   .option('--fresh', 'Force fresh transformation by bypassing any cached framed expert data')
-  .option('--rosetta', 'Use the rosetta-prefixed ae-std/webapp files instead of the legacy ones')
+  .option('--rosetta', 'Use the rosetta-prefixed ae-std/webapp files instead of the legacy ones (defaults from EXPERTS_ROSETTA_ENABLED env var)', config.rosetta.enabled)
+  .option('--no-rosetta', 'Force-disable the rosetta pipeline for this run')
   .action(async (email, options) => {
 
     // use a connection pool to speed up writes
@@ -236,7 +241,8 @@ program
   .description('transform single expert from aggie experts standard format to webapp format.  Requires ALL ae-std transforms to have been run first for proper execution.')
   .argument('<email>', 'Email of the expert to transform')
   .option('--fresh', 'Force fresh transformation by bypassing any cached framed expert data')
-  .option('--rosetta', 'Use the rosetta-prefixed ae-std/webapp files instead of the legacy ones')
+  .option('--rosetta', 'Use the rosetta-prefixed ae-std/webapp files instead of the legacy ones (defaults from EXPERTS_ROSETTA_ENABLED env var)', config.rosetta.enabled)
+  .option('--no-rosetta', 'Force-disable the rosetta pipeline for this run')
   .action(async (email, options) => {
 
     // use a connection pool to speed up writes

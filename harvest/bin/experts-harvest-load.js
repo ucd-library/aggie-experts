@@ -19,7 +19,8 @@ program.name('load')
     .default(config.elasticsearch.aliases.stage)
     .choices([config.elasticsearch.aliases.current, config.elasticsearch.aliases.stage, 'all']))
   .option('--reporting-job-id <job-id>', 'Job ID for reporting')
-  .option('--rosetta', 'Load the rosetta-prefixed ae-std/webapp files instead of the legacy ones')
+  .option('--rosetta', 'Load the rosetta-prefixed ae-std/webapp files instead of the legacy ones (defaults from EXPERTS_ROSETTA_ENABLED env var)', config.rosetta.enabled)
+  .option('--no-rosetta', 'Force-disable the rosetta pipeline for this run')
   .action(async (userId, options) => {
     userId = wrapUserDomain(userId);
 
