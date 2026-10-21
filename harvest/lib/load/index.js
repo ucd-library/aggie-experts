@@ -10,7 +10,7 @@ import { MivApi, SitefarmApi } from '../api/index.js';
 const mivApi = new MivApi();
 const sitefarmApi = new SitefarmApi();
 
-async function run(user, alias) {
+async function run(user, alias, opts={}) {
   if( !alias ) alias = config.elasticsearch.aliases.stage;
 
   // check which aliases to write to.  ALL means both stage & current
@@ -25,7 +25,7 @@ async function run(user, alias) {
   // Insert load statistics on scholarly output into database if reporting is enabled
   if (config.reporting.enabled && config.postgres.client) {
     await reportScholarlyOutputLoadStats(user, metadata);
-    await reportValidationIssues(user, metadata);
+    await reportValidationIssues(user, metadata, opts);
   }
 
   if( metadata.isPublic === false ) {
@@ -33,10 +33,10 @@ async function run(user, alias) {
 
     // MIV and Sitefarm are private APIs that serve complete data regardless of
     // an expert's public visibility, so still load their postgres projections.
-    await loadApiProjections(user, metadata);
+    await loadApiProjections(user, metadata, opts);
 
     // Elasticsearch is the public-facing index, so remove non-public experts.
-    await purgeUser(metadata.expertId, alias);
+    await purgeUser(metadata.expertId, alias, opts);
 
     if (config.reporting.enabled && config.postgres.client &&
         alias.includes(config.elasticsearch.aliases.stage) ) {
@@ -47,7 +47,7 @@ async function run(user, alias) {
 
 
   // find all users scholarly work files (expert file, works, grants) for loading into elastic search
-  let files = await getPublicScholarlyWorkFiles(user);
+  let files = await getPublicScholarlyWorkFiles(user, opts);
 
   // get current works, see if anything is elasticsearch is not in current list
   // if so we need to re transform and reload into elastic search
@@ -68,7 +68,7 @@ async function run(user, alias) {
       // TODO: this kinda sucks
       let type = currentWorks.includes(uri) ? 'work' : 'grant';
       try {
-        let result = await generateScholarlyWork(uri, {write: true});
+        let result = await generateScholarlyWork(uri, {write: true, rosetta: opts.rosetta});
         files.push({
           type,
           path: result.filepath
@@ -80,7 +80,7 @@ async function run(user, alias) {
   }
 
   // load the MIV + Sitefarm postgres projections (private APIs)
-  await loadApiProjections(user, metadata);
+  await loadApiProjections(user, metadata, opts);
 
   // load files into elastic search
   let indexes = await loadEs(files, alias);
@@ -105,11 +105,13 @@ async function run(user, alias) {
  *
  * @param {String} user user email
  * @param {Object} metadata parsed metadata.json for the user
+ * @param {Object} opts options object
+ * @param {Boolean} opts.rosetta when true, source identity from the rosetta-prefixed ae-std file
  * @returns {Promise}
  */
-async function loadApiProjections(user, metadata) {
+async function loadApiProjections(user, metadata, opts={}) {
   // MIV projection: identity + grants (from ae-std)
-  const mivFiles = getMivPostgresFiles(user, metadata);
+  const mivFiles = getMivPostgresFiles(user, metadata, opts);
   await mivApi.load({
     user,
     metadata,
@@ -117,7 +119,7 @@ async function loadApiProjections(user, metadata) {
   });
 
   // Sitefarm projection: expert profile + works (from ae-std)
-  const sitefarmFiles = getSitefarmPostgresFiles(user, metadata);
+  const sitefarmFiles = getSitefarmPostgresFiles(user, metadata, opts);
   await sitefarmApi.load({
     user,
     metadata,
@@ -180,8 +182,9 @@ function _hasType(node, type) {
 /**
  * @description Persist field-level validation issues for works/grants into Postgres.
  * Source of truth for field validation is the webapp expert.jsonld output
+ * (or webapp/rosetta-expert.jsonld when opts.rosetta is set).
  */
-async function reportValidationIssues(user, metadata={}) {
+async function reportValidationIssues(user, metadata={}, opts={}) {
   const pg = config.postgres?.client;
   if( !config.reporting.enabled || !pg ) return;
 
@@ -189,11 +192,12 @@ async function reportValidationIssues(user, metadata={}) {
 
   // expert.jsonld is generated in transform and should exist before load.
   // If it doesn't, we avoid writing noisy false positives.
+  const expertFile = opts.rosetta ? 'webapp/rosetta-expert.jsonld' : 'webapp/expert.jsonld';
   let expertDoc;
   try {
-    expertDoc = JSON.parse(await cache.readUserAsset(user, 'webapp/expert.jsonld'));
+    expertDoc = JSON.parse(await cache.readUserAsset(user, expertFile));
   } catch (e) {
-    logger.warn(`Unable to read webapp/expert.jsonld for validation issue reporting for user ${user}. Skipping.`, { error: e.message });
+    logger.warn(`Unable to read ${expertFile} for validation issue reporting for user ${user}. Skipping.`, { error: e.message });
     return;
   }
 
@@ -303,7 +307,7 @@ async function reportValidationIssues(user, metadata={}) {
   logger.info(`Recorded validation issues for user: ${user}`, { count: issues.length });
 }
 
-async function purgeUser(expertId, alias='stage') {
+async function purgeUser(expertId, alias='stage', opts={}) {
   logger.info(`Purging scholarly works for user with expertId ${expertId} from elastic search index with alias ${alias}`);
 
   if( !Array.isArray(alias) ) {
@@ -325,7 +329,7 @@ async function purgeUser(expertId, alias='stage') {
       let works = current[type];
       for( let uri of works ) {
         try {
-          await generateScholarlyWork(uri, {write: true});
+          await generateScholarlyWork(uri, {write: true, rosetta: opts.rosetta});
         } catch (error) {
           logger.error(`Failed to generate scholarly work for URI ${uri}: ${error.message}`);
         }
@@ -334,13 +338,13 @@ async function purgeUser(expertId, alias='stage') {
   }
 }
 
-async function getPublicScholarlyWorkFiles(user) {
+async function getPublicScholarlyWorkFiles(user, opts={}) {
   const list = JSON.parse(await cache.readUserAsset(user, 'metadata.json'));
 
   let results = [
     {
       type: 'expert',
-      path: cache.getUserPath(user, ['webapp', 'expert.jsonld'])
+      path: cache.getUserPath(user, ['webapp', opts.rosetta ? 'rosetta-expert.jsonld' : 'expert.jsonld'])
     },
     ...list.works.filter(work => work.privacy.value === true).map(work => {
       return {
@@ -365,17 +369,18 @@ async function getPublicScholarlyWorkFiles(user) {
 
 /**
  * Build the file list consumed by mivApi.load():
- *   - one personAeStd entry pointing at ae-std/person.jsonld (identity)
+ *   - one personAeStd entry pointing at ae-std/person.jsonld (identity), or
+ *     ae-std/rosetta-person.jsonld when opts.rosetta is set
  *   - zero or more grant entries pointing at ae-std/rel/{relationshipUri}.jsonld
  *
  * Sourced entirely from ae-std (not the ae-webapp expert.jsonld) so the MIV
  * postgres API path is decoupled from the elasticsearch projection. All grants
  * are included (public and private) — the private APIs serve complete data.
  */
-function getMivPostgresFiles(user, metadata={}) {
+function getMivPostgresFiles(user, metadata={}, opts={}) {
   const result = [{
     type: 'personAeStd',
-    path: cache.getUserPath(user, ['ae-std', 'person.jsonld'])
+    path: cache.getUserPath(user, ['ae-std', opts.rosetta ? 'rosetta-person.jsonld' : 'person.jsonld'])
   }];
 
   for (const grant of (metadata.grants || [])) {
@@ -393,7 +398,8 @@ function getMivPostgresFiles(user, metadata={}) {
 
 /**
  * Build the file list consumed by sitefarmApi.load():
- *   - one personAeStd entry pointing at ae-std/person.jsonld
+ *   - one personAeStd entry pointing at ae-std/person.jsonld, or
+ *     ae-std/rosetta-person.jsonld when opts.rosetta is set
  *   - zero or more work entries pointing at ae-std/rel/{relationshipUri}.jsonld
  *
  * The expert profile is sourced from ae-std (not the ae-webapp expert.jsonld)
@@ -401,10 +407,10 @@ function getMivPostgresFiles(user, metadata={}) {
  * projection. All works are included (public and private) — the private APIs
  * serve complete data.
  */
-function getSitefarmPostgresFiles(user, metadata={}) {
+function getSitefarmPostgresFiles(user, metadata={}, opts={}) {
   const result = [{
     type: 'personAeStd',
-    path: cache.getUserPath(user, ['ae-std', 'person.jsonld'])
+    path: cache.getUserPath(user, ['ae-std', opts.rosetta ? 'rosetta-person.jsonld' : 'person.jsonld'])
   }];
 
   for (const work of (metadata.works || [])) {
