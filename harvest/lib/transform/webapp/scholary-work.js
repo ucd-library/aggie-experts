@@ -48,9 +48,9 @@ const PROMPT_ROOT_PROPS = [
  * for the scholarly work.
  * 
  * @param {String} subject the subject URI of the work to transform
- * @param {Object} opts 
+ * @param {Object} opts
  * @param {Temporal.PlainDate} opts.date the date to use for partitioning when finding related nodes (defaults to now)
- * 
+ *
  * @return {Object} base scholarly work node
  */
 async function generateBaseScholarlyWork(subject, opts={}) {
@@ -81,7 +81,8 @@ async function generateBaseScholarlyWork(subject, opts={}) {
  * for the scholarly work.
  * 
  * @param {String} subject the subject URI of the work to transform
- * @param {Object} opts 
+ * @param {Object} opts
+ * @param {Boolean} opts.rosetta when true, related-expert stub lookups source from the rosetta-prefixed ae-std person file
  */
 async function generateScholarlyWork(subject, opts={}) {
   logger.info(`Running AE webapp scholarly work transformation for subject: ${subject}`);
@@ -135,6 +136,17 @@ function getScholarlyWorkType(nodeTypes) {
 }
 
 
+/**
+ * @function _getScholarlyWorkExperts
+ * @description Resolves the simplified expert stubs for each author/PI related to a scholarly work.
+ *
+ * @param {Object} baseWorkNode the base scholarly work node (from generateBaseScholarlyWork)
+ * @param {Object} opts
+ * @param {Temporal.PlainDate} opts.date the date to use for partitioning when finding related nodes (defaults to now)
+ * @param {Boolean} opts.rosetta when true, look up each related expert's rosetta-prefixed ae-std person file instead of the legacy one
+ *
+ * @returns {Promise<Array<Object>>} simplified expert nodes
+ */
 async function _getScholarlyWorkExperts(baseWorkNode, opts={}) {
   let experts = new Set();
 
@@ -154,15 +166,18 @@ async function _getScholarlyWorkExperts(baseWorkNode, opts={}) {
   // filter to the experts id pattern
   experts = Array.from(experts).filter(id => id.startsWith('expert/'));
 
+  logger.info(`Found ${experts.length} related expert id(s) for scholarly work ${baseWorkNode?.['@id']} (rosetta=${!!opts.rosetta}): ${JSON.stringify(experts)}`);
+
   const partitionKeys = ['year-week-'+getYearWeek(opts.date), 'ae-std'];
   const results = [];
-  
+
   for( let expertId of experts ) {
     // first try the cache id map lookup
     let filepath = '';
     let cachedEmail = await cache.getUserIdLookup(expertId.split('/').pop());
     if( cachedEmail ) {
-      filepath = cache.getUserPath(cachedEmail, 'ae-std/person.jsonld');
+      filepath = cache.getUserPath(cachedEmail, opts.rosetta ? 'ae-std/rosetta-person.jsonld' : 'ae-std/person.jsonld');
+      logger.info(`Resolved expertId ${expertId} to cached email ${cachedEmail}; checking ${filepath}`);
     // else use the RDF search to find the expert file based on expertId
     } else {
       logger.warn(`No cached email found for expertId ${expertId} in node.relatedBy.relates ${baseWorkNode['@id']}.  Attempting to find related expert via RDF search.`);
@@ -177,9 +192,12 @@ async function _getScholarlyWorkExperts(baseWorkNode, opts={}) {
 
       // hack out their email from the filepath for the cache lookup since we don't have it
       cachedEmail = filepath.split('/').find(part => part.includes('@'));
+      logger.info(`RDF search resolved expertId ${expertId} to ${filepath}`);
     }
 
-    if( !await cache.exists(filepath) ) {
+    let expertFileExists = await cache.exists(filepath);
+    logger.info(`Expert file ${filepath} exists: ${!!expertFileExists}`);
+    if( !expertFileExists ) {
       logger.warn(`Expert file not found in cache at ${filepath} for expertId ${expertId} in node.relatedBy.relates ${baseWorkNode['@id']}`);
       continue;
     }
@@ -200,6 +218,7 @@ async function _getScholarlyWorkExperts(baseWorkNode, opts={}) {
       continue;
     }
 
+    logger.info(`Resolved related expert stub for ${expertId} on scholarly work ${baseWorkNode['@id']}`);
     results.push(simplifiedExpert(person));
   }
 

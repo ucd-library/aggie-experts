@@ -20,6 +20,7 @@ program.command('run')
   .option('--root-dir <root-dir>', 'Root directory for extracted data.  Respects env EXPERTS_ROOT_DIR')
   .option('--reporting', 'Enable reporting for this extraction')
   .option('--reporting-job-id <job-id>', 'Job ID for reporting')
+  .option('--rosetta', 'Also fetch and cache the new IAM rosetta profile (iam/rosetta-profile.json)')
   .action(async (user, options) => {
     user = wrapUserDomain(user);
 
@@ -33,7 +34,8 @@ program.command('run')
     let resp = await extract.run({
       user: user,
       force: true,
-      rootDir: options.rootDir
+      rootDir: options.rootDir,
+      useRosetta: options.rosetta
     });
 
     if( resp.notFound ) {

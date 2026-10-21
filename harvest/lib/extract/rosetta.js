@@ -10,6 +10,8 @@
 
 import fetch from 'node-fetch';
 import { logger, GoogleSecret, config } from '@ucd-lib/experts-commons';
+import cache from '../cache.js';
+import path from 'path';
 
 /** Exports a class
 * @class
@@ -149,6 +151,55 @@ export class Rosetta {
     }
 
     return await response.json();
+  }
+
+  /**
+   * @function profile
+   * @description Fetch a single person's rosetta profile by login id or email, and cache the
+   * raw response (parallel to IAM.profile()'s caching of the legacy iam/profile.json).
+   * @param {string|Object} expert - A login id / email string, or an object with a `userId` or `email` key.
+   * @param {Object} [opts={}] - Options.
+   * @param {string} [opts.cacheKey] - When provided, the raw response is cached under this user's asset path.
+   * @returns {Promise<Object>} - `{notFound: true}` if no record was found, otherwise `{writeResp, jsonfn, json}`.
+   * @throws {Error} - Throws an error if the request is invalid or the response is not OK.
+   **/
+  async profile(expert, opts = {}) {
+    let id, filters;
+    if (typeof expert === 'object') {
+      if (expert.email) {
+        id = expert.email;
+        filters = { email: expert.email };
+      } else if (expert.userId) {
+        id = expert.userId;
+        filters = { loginid: expert.userId };
+      } else {
+        throw new Error('Invalid expert object');
+      }
+    } else {
+      if (typeof expert !== 'string') {
+        throw new Error('Invalid expert');
+      }
+      id = expert;
+      const userId = expert.replace(/^mailto:/, '').replace(new RegExp(config.userDomain + '$'), '');
+      filters = { loginid: userId };
+    }
+
+    this.log.info(`Fetching rosetta profile ${id}`);
+    const res = await this.people(filters);
+
+    if (!Array.isArray(res) || res.length === 0) {
+      logger.warn(`No rosetta profile found for expert: ${id}`);
+      return { notFound: true };
+    }
+
+    const jsonfn = path.join(config.cache.iamDir, config.cache.iamRosettaProfileFilename);
+
+    let writeResp;
+    if (opts.cacheKey) {
+      writeResp = await cache.writeUserAsset(opts.cacheKey, jsonfn, res);
+    }
+
+    return { writeResp, jsonfn, json: res };
   }
 
   /**

@@ -27,23 +27,30 @@ function annotateWorkValidationFlags(node) {
 /**
  * @method generateBaseExpert
  * @description Generates the based compacted expert data for the webapp transformation.
- * 
+ *
  * @param {String} username the username (email) of the expert to generate the data for
- * 
+ * @param {Object} opts options object
+ * @param {Boolean} opts.rosetta when true, source from ae-std/rosetta-person.jsonld (instead of
+ * ae-std/person.jsonld) and write to the rosetta-prefixed webapp output file, keeping the two
+ * pipelines fully side by side
+ *
  * @returns {Object} the framed expert data ready for webapp consumption
 */
 async function generateBaseExpert(username, opts={}) {
   logger.info(`Running AE webapp base expert transformation for user: ${username}`);
 
-  let aeStdPersonPath = cache.getUserPath(username, 'ae-std/person.jsonld');
+  const aeStdFile = opts.rosetta ? 'ae-std/rosetta-person.jsonld' : 'ae-std/person.jsonld';
+  const outputFile = opts.rosetta ? 'webapp/rosetta-expert-base.jsonld' : 'webapp/expert-base.jsonld';
+
+  let aeStdPersonPath = cache.getUserPath(username, aeStdFile);
   if( !await cache.exists(aeStdPersonPath) ) {
-    logger.warn(`No ae-std person.jsonld found for user ${username} at path ${aeStdPersonPath}`);
+    logger.warn(`No ${aeStdFile} found for user ${username} at path ${aeStdPersonPath}`);
     return null;
   }
 
   // Read the main expert graph
-  const aeStdPerson = await cache.readUserAsset(username, 'ae-std/person.jsonld');
-  
+  const aeStdPerson = await cache.readUserAsset(username, aeStdFile);
+
   const expertGraph = JSON.parse(aeStdPerson);
 
   // const keycloak = await cache.readUserAsset(username, 'keycloak.json');
@@ -66,7 +73,7 @@ async function generateBaseExpert(username, opts={}) {
   if( opts.write ) {
     await cache.writeUserAsset(
       username,
-      'webapp/expert-base.jsonld',
+      outputFile,
       JSON.stringify(node, null, 2)
     );
   }
@@ -74,17 +81,31 @@ async function generateBaseExpert(username, opts={}) {
   return node;
 }
 
+/**
+ * @method generateSimplifiedExpert
+ * @description Generates the simplified expert data for the webapp transformation.
+ *
+ * @param {String} username the username (email) of the expert to generate the data for
+ * @param {Object} opts options object
+ * @param {Boolean} opts.fresh when true, re-frame from ae-std rather than reading the cached base expert
+ * @param {Boolean} opts.rosetta when true, source/write the rosetta-prefixed webapp files
+ *
+ * @returns {Object} the simplified expert node
+ */
 async function generateSimplifiedExpert(username, opts={}) {
   logger.info(`Running AE webapp simplified expert transformation for user: ${username}`);
+
+  const baseFile = opts.rosetta ? 'webapp/rosetta-expert-base.jsonld' : 'webapp/expert-base.jsonld';
+  const outputFile = opts.rosetta ? 'webapp/rosetta-expert-simplified.jsonld' : 'webapp/expert-simplified.jsonld';
 
   let expertNode;
 
   if( opts.fresh ) {
     // Frame the expert graph to webapp format
-    expertNode = await generateBaseExpert(username, {write: false});
+    expertNode = await generateBaseExpert(username, {write: false, rosetta: opts.rosetta});
   } else {
     // If not fresh, we can attempt to read the already framed expert data (faster)
-    expertNode = JSON.parse(await cache.readUserAsset(username, 'webapp/expert-base.jsonld'));
+    expertNode = JSON.parse(await cache.readUserAsset(username, baseFile));
   }
 
   let simplified = simplifiedExpert(expertNode);
@@ -92,7 +113,7 @@ async function generateSimplifiedExpert(username, opts={}) {
   if( opts.write ) {
     await cache.writeUserAsset(
       username,
-      'webapp/expert-simplified.jsonld',
+      outputFile,
       JSON.stringify(simplified, null, 2)
     );
   }
@@ -100,18 +121,32 @@ async function generateSimplifiedExpert(username, opts={}) {
   return simplified;
 }
 
+/**
+ * @method generateExpert
+ * @description Generates the full expert graph (expert + related works/grants) for the webapp transformation.
+ *
+ * @param {String} username the username (email) of the expert to generate the data for
+ * @param {Object} opts options object
+ * @param {Boolean} opts.fresh when true, re-frame from ae-std rather than reading the cached base expert
+ * @param {Boolean} opts.rosetta when true, source/write the rosetta-prefixed webapp files
+ *
+ * @returns {Object} the full expert graph document
+ */
 async function generateExpert(username, opts={}) {
   logger.info(`Running AE webapp expert transformation for user: ${username}`);
 
   let graph = new Graph();
 
+  const baseFile = opts.rosetta ? 'webapp/rosetta-expert-base.jsonld' : 'webapp/expert-base.jsonld';
+  const outputFile = opts.rosetta ? 'webapp/rosetta-expert.jsonld' : 'webapp/expert.jsonld';
+
   let expertNode;
   if( opts.fresh ) {
     // Frame the expert graph to webapp format
-    expertNode = await generateBaseExpert(username, {write: false});
+    expertNode = await generateBaseExpert(username, {write: false, rosetta: opts.rosetta});
   } else {
     // If not fresh, we can attempt to read the already framed expert data (faster)
-    expertNode = JSON.parse(await cache.readUserAsset(username, 'webapp/expert-base.jsonld'));
+    expertNode = JSON.parse(await cache.readUserAsset(username, baseFile));
   }
   graph.addNode(expertNode);
 
@@ -146,7 +181,7 @@ async function generateExpert(username, opts={}) {
   if( opts.write ) {
     await cache.writeUserAsset(
       username,
-      'webapp/expert.jsonld',
+      outputFile,
       JSON.stringify(graph, null, 2)
     );
   }

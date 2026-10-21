@@ -20,6 +20,7 @@ program
   .option('--reporting', 'Enable reporting for this transformation')
   .option('--reporting-job-id <job-id>', 'Job ID for reporting')
   .option('--std-sort', 'Sort the ae-std output files for debugging')
+  .option('--rosetta', 'Use the new IAM rosetta-based person transform instead of the legacy transform')
   .action(async (userId, options) => {
 
     userId = wrapUserDomain(userId);
@@ -54,7 +55,8 @@ program
     }
 
     let metadata = await srcToAeStd({
-      user: userId
+      user: userId,
+      useRosetta: options.rosetta
     });
 
     if( options.reporting || options.reportingJobId ) {
@@ -67,12 +69,12 @@ program
     }
 
     if( !metadata?.iamExtractIssues ) {
-      let baseExpert = await generateBaseExpert(userId, {write: true});
-    
+      let baseExpert = await generateBaseExpert(userId, {write: true, rosetta: options.rosetta});
+
       if( !baseExpert ) {
         logger.warn(`Base expert transformation failed for user ${userId}, skipping simplifed transformations.`);
       } else {
-        await generateSimplifiedExpert(userId, {write: true});
+        await generateSimplifiedExpert(userId, {write: true, rosetta: options.rosetta});
       }
     } else {
       logger.warn(`Skipping webapp transformations for user ${userId} due to IAM extraction issues: ${JSON.stringify(metadata.iamExtractIssues)}`);
@@ -95,6 +97,7 @@ program
   .option('--reporting', 'Enable reporting for this transformation')
   .option('--reporting-job-id <job-id>', 'Job ID for reporting')
   .option('--std-sort', 'Sort the ae-std output files for debugging')
+  .option('--rosetta', 'Use the rosetta-prefixed ae-std/webapp files instead of the legacy ones')
   .action(async (userId, options) => {
 
     userId = wrapUserDomain(userId);
@@ -132,7 +135,7 @@ program
       logger.info('ae-std sorting enabled via --std-sort');
     }
 
-    let expert = await generateExpert(userId, {write: true});
+    let expert = await generateExpert(userId, {write: true, rosetta: options.rosetta});
 
     let swSubjects = expert['@graph']
       .filter(node => getNodeByType(node, SHORT_TYPES.SCHOLARLY_WORK_TYPES, {match: true}))
@@ -145,7 +148,7 @@ program
 
 
     for( let subject of swSubjects ) {
-      await generateScholarlyWork(subject.uri, {write: true});
+      await generateScholarlyWork(subject.uri, {write: true, rosetta: options.rosetta});
     }
 
     if( config.reporting.enabled ) {
@@ -178,12 +181,13 @@ program
   .command('webapp-scholarly-work')
   .description('transform single scholarly work from aggie experts standard format to webapp format.  Requires ALL ae-std transforms to have been run first for proper execution.')
   .argument('<subject-uri>', 'Subject URI of the scholarly work to transform')
+  .option('--rosetta', 'Use the rosetta-prefixed ae-std files for related expert lookups')
   .action(async (subjectUri, options) => {
 
     // use a connection pool to speed up writes
     config.cache.poolDbConnection = true;
 
-    let result = await generateScholarlyWork(subjectUri);
+    let result = await generateScholarlyWork(subjectUri, {rosetta: options.rosetta});
     console.log(JSON.stringify(result.json, null, 2));
     await cache.close();
 
@@ -195,12 +199,13 @@ program
   .command('webapp-base-expert')
   .description('transform single expert from aggie experts standard format to webapp format.  Requires ALL ae-std transforms to have been run first for proper execution.')
   .argument('<email>', 'Email of the expert to transform')
+  .option('--rosetta', 'Use the rosetta-prefixed ae-std/webapp files instead of the legacy ones')
   .action(async (email, options) => {
 
     // use a connection pool to speed up writes
     config.cache.poolDbConnection = true;
 
-    console.log(JSON.stringify(await generateBaseExpert(email), null, 2));
+    console.log(JSON.stringify(await generateBaseExpert(email, {rosetta: options.rosetta}), null, 2));
     await cache.close();
 
     // TODO: why is this hanging?
@@ -212,12 +217,13 @@ program
   .description('transform single expert from aggie experts standard format to webapp format.  Requires ALL ae-std transforms to have been run first for proper execution.')
   .argument('<email>', 'Email of the expert to transform')
   .option('--fresh', 'Force fresh transformation by bypassing any cached framed expert data')
+  .option('--rosetta', 'Use the rosetta-prefixed ae-std/webapp files instead of the legacy ones')
   .action(async (email, options) => {
 
     // use a connection pool to speed up writes
     config.cache.poolDbConnection = true;
 
-    let expert = await generateExpert(email, {fresh: options.fresh});
+    let expert = await generateExpert(email, {fresh: options.fresh, rosetta: options.rosetta});
     console.log(JSON.stringify(expert, null, 2));
     await cache.close();
 
@@ -230,12 +236,13 @@ program
   .description('transform single expert from aggie experts standard format to webapp format.  Requires ALL ae-std transforms to have been run first for proper execution.')
   .argument('<email>', 'Email of the expert to transform')
   .option('--fresh', 'Force fresh transformation by bypassing any cached framed expert data')
+  .option('--rosetta', 'Use the rosetta-prefixed ae-std/webapp files instead of the legacy ones')
   .action(async (email, options) => {
 
     // use a connection pool to speed up writes
     config.cache.poolDbConnection = true;
 
-    let simplified = await generateSimplifiedExpert(email, {fresh: options.fresh});
+    let simplified = await generateSimplifiedExpert(email, {fresh: options.fresh, rosetta: options.rosetta});
     console.log(JSON.stringify(simplified, null, 2));
     await cache.close();
 

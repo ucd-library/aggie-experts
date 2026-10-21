@@ -1,11 +1,13 @@
 import CdlClient from './cdl.js';
 import IamClient from './iam.js';
+import RosettaClient from './rosetta.js';
 import cache from '../cache.js';
 import { logger, config, ExpertsKcAdminClient } from '@ucd-lib/experts-commons';
 import wrapUserDomain from '../user-domain.js';
 
 const cdlClient = new CdlClient();
 const iamClient = new IamClient();
+const rosettaClient = new RosettaClient();
 const kcClient = new ExpertsKcAdminClient();
 
 const REQUIRED_PROFILE_FIELDS = ['oFirstName', 'oLastName', 'mothraId', 'iamId', 'userID'];
@@ -105,6 +107,24 @@ async function run(options={}) {
   await cache.writeUserIdLookup(options.user, user.attributes.expertId[0]);
   if( config.reporting.enabled && config.postgres.client ) {
     await config.postgres.client.upsertUser(user.attributes.expertId[0], options.user);
+  }
+
+  // Fetch + cache the new rosetta IAM profile alongside the legacy one, when requested.
+  // This is additive and experimental: failures here must never break the legacy
+  // extraction pipeline.
+  if ( options.useRosetta ) {
+    let rosettaLookupOptions = [
+      { userId : options.user.replace(/@.*/, '') },
+      { email : options.user }
+    ];
+    for ( let opt of rosettaLookupOptions ) {
+      try {
+        let rosettaResp = await rosettaClient.profile(opt, { cacheKey: options.user });
+        if ( rosettaResp.json ) break;
+      } catch (err) {
+        logger.warn(`Error fetching rosetta profile with options ${JSON.stringify(opt)}: ${err.message}`);
+      }
+    }
   }
 
   // const cdlClient = new CdlClient();

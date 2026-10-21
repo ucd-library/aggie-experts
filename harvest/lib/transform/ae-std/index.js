@@ -6,6 +6,7 @@ import path from 'path';
 import jsonAtomToJsonLd from './jsonatom-to-jsonld.js';
 import iamApiToJsonLd from './iam-to-jsonld.js';
 import {jsonLdToPerson} from './person.js';
+import { toPerson as rosettaToPerson } from './rosetta-person.js';
 import {toRelationshipsJsonLd} from './to-relationships-jsonld.js';
 
 async function srcToAeStd(options={}) {
@@ -44,14 +45,27 @@ async function srcToAeStd(options={}) {
     }
   }
 
-  // Transform IAM directory data
-  let iamUserPath = cache.getUserPath(options.user, [config.cache.iamDir, config.cache.iamUserFilename]);
-  logger.info(`IAM user path: ${iamUserPath}`);
-  let iamDir = await iamApiToJsonLd(iamUserPath);
+  // Transform IAM directory data (legacy), or read the cached rosetta profile directly
+  // ("skip the jsonld step" - no @graph wrapping transform for rosetta).
+  let iamDir, rosettaProfilePath, rosettaProfileNode;
+  if( options.useRosetta ) {
+    rosettaProfilePath = cache.getUserPath(options.user, [config.cache.iamDir, config.cache.iamRosettaProfileFilename]);
+    logger.info(`Rosetta profile path: ${rosettaProfilePath}`);
+    let rawRosettaProfile = JSON.parse(await cache.read(rosettaProfilePath));
+    rosettaProfileNode = Array.isArray(rawRosettaProfile) ? rawRosettaProfile[0] : rawRosettaProfile;
 
-  let email = iamDir.graph?.['@graph']?.[0]?.email;
-  if( !email ) {
-    throw new Error(`No email found in IAM profile for user: ${options.user}`);
+    if( !rosettaProfileNode?.email?.campus ) {
+      throw new Error(`No email found in rosetta profile for user: ${options.user}`);
+    }
+  } else {
+    let iamUserPath = cache.getUserPath(options.user, [config.cache.iamDir, config.cache.iamUserFilename]);
+    logger.info(`IAM user path: ${iamUserPath}`);
+    iamDir = await iamApiToJsonLd(iamUserPath);
+
+    let email = iamDir.graph?.['@graph']?.[0]?.email;
+    if( !email ) {
+      throw new Error(`No email found in IAM profile for user: ${options.user}`);
+    }
   }
 
   // Get expert ID and name from keycloak
@@ -60,13 +74,19 @@ async function srcToAeStd(options={}) {
 
   let expertId = user.attributes.expertId[0];
   let expertData = {};
-  // Prefer IAM/Directory preferred name when available (keeps behavior consistent with person transform)
-  const iamGraph = iamDir && iamDir.graph;
-  const iamNode = iamGraph && iamGraph['@graph'] && iamGraph['@graph'][0];
-  const iamFirst = iamNode && iamNode.dFirstName;
-  const iamPreferredLname = iamNode && iamNode.directory && iamNode.directory.displayName && iamNode.directory.displayName.preferredLname;
-  expertData['last-name'] = iamPreferredLname || user.lastName;
-  expertData['first-name'] = iamFirst || user.firstName;
+  // Prefer IAM/Directory (or rosetta lived-name) preferred name when available
+  // (keeps behavior consistent with the person transform)
+  if( options.useRosetta ) {
+    expertData['last-name'] = rosettaProfileNode?.name?.lived_last_name || user.lastName;
+    expertData['first-name'] = rosettaProfileNode?.name?.lived_first_name || user.firstName;
+  } else {
+    const iamGraph = iamDir && iamDir.graph;
+    const iamNode = iamGraph && iamGraph['@graph'] && iamGraph['@graph'][0];
+    const iamFirst = iamNode && iamNode.dFirstName;
+    const iamPreferredLname = iamNode && iamNode.directory && iamNode.directory.displayName && iamNode.directory.displayName.preferredLname;
+    expertData['last-name'] = iamPreferredLname || user.lastName;
+    expertData['first-name'] = iamFirst || user.firstName;
+  }
 
   // Extract the Elements user ID from the CDL user file
   try {
@@ -84,7 +104,9 @@ async function srcToAeStd(options={}) {
   }
 
   // Transform in std AE Person data
-  let { isPublic, odrPrivacy, cdlPrivacy, privacyAttributes, noPPSAssociations } = await jsonLdToPerson(options.user, expertId, iamDir.jsonldFile, cdlJsonLdFiles, config.vocab.ucopFile);
+  let { isPublic, odrPrivacy, cdlPrivacy, privacyAttributes, noPPSAssociations } = options.useRosetta
+    ? await rosettaToPerson(options.user, expertId, rosettaProfilePath, cdlJsonLdFiles, config.vocab.ucopFile)
+    : await jsonLdToPerson(options.user, expertId, iamDir.jsonldFile, cdlJsonLdFiles, config.vocab.ucopFile);
 
   // Transform in std AE relationships data
   let grants = [], works = [];

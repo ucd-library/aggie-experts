@@ -156,6 +156,7 @@ const config = {
     keycloakUserFilename : 'keycloak.json',
     cdlUserFilename : 'user_000.json',
     iamUserFilename : 'profile.json',
+    iamRosettaProfileFilename : env.EXPERTS_IAM_ROSETTA_PROFILE_FILENAME || 'rosetta-profile.json',
 
     autoPathPartitions : [{
       name : 'year-week',
