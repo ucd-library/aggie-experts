@@ -12,6 +12,8 @@ import fetch from 'node-fetch';
 import { logger, GoogleSecret, config } from '@ucd-lib/experts-commons';
 import cache from '../cache.js';
 import path from 'path';
+import fs from 'fs';
+import os from 'os';
 
 /** Exports a class
 * @class
@@ -35,17 +37,78 @@ export class Rosetta {
     this.endpoints = config.rosetta[env].endpoints;
     this.token = null;
     this.tokenExpiresAt = 0;
+    this.tokenCachePath = path.join(os.tmpdir(), `rosetta-oauth-token.${env}.json`);
+  }
+
+  /**
+   * @function _readCachedToken
+   * @description Read and validate a previously cached token from disk, written by a prior
+   * CLI invocation. Any missing/unreadable/malformed/expired cache is treated as a cache miss
+   * rather than an error.
+   * @returns {{accessToken: string, expiresAt: number}|null} - The cached token, or null on any miss.
+   **/
+  _readCachedToken() {
+    try {
+      const raw = fs.readFileSync(this.tokenCachePath, 'utf8');
+      const cached = JSON.parse(raw);
+      if (typeof cached?.accessToken === 'string' && typeof cached?.expiresAt === 'number' && Date.now() < cached.expiresAt) {
+        return cached;
+      }
+    } catch (e) {
+      // missing file, bad permissions, or corrupt JSON - fall through to a fresh fetch
+    }
+    return null;
+  }
+
+  /**
+   * @function _writeCachedToken
+   * @description Best-effort atomic write of the current token to disk so later CLI
+   * invocations can reuse it. Writes to a sibling temp file then renames over the cache path,
+   * so a concurrent reader never sees a partially-written file. Failures are logged and
+   * swallowed - a cache-write failure must not fail an already-successful token fetch.
+   * @returns {void}
+   **/
+  _writeCachedToken() {
+    const tmpPath = `${this.tokenCachePath}.${process.pid}.tmp`;
+    try {
+      fs.writeFileSync(tmpPath, JSON.stringify({ accessToken: this.token, expiresAt: this.tokenExpiresAt }), { mode: 0o600 });
+      fs.renameSync(tmpPath, this.tokenCachePath);
+    } catch (e) {
+      this.log.warn(`Failed to write rosetta token cache to ${this.tokenCachePath}: ${e.message}`);
+      try { fs.unlinkSync(tmpPath); } catch (e2) { /* best effort */ }
+    }
+  }
+
+  /**
+   * @function _invalidateToken
+   * @description Clear the in-memory and on-disk cached token, e.g. after the Rosetta API
+   * rejects a cached token with a 401 (server-side revocation before natural expiry).
+   * @returns {void}
+   **/
+  _invalidateToken() {
+    this.token = null;
+    this.tokenExpiresAt = 0;
+    try { fs.unlinkSync(this.tokenCachePath); } catch (e) { /* best effort */ }
   }
 
   /**
    * @function getToken
    * @description Fetch and cache an OAuth2 bearer token using the client_credentials grant,
-   * refreshing it once it has expired.
+   * refreshing it once it has expired. Checks an in-memory cache first, then a cache file
+   * shared with other CLI invocations on disk, before fetching a new token.
    * @returns {Promise<string>} - The bearer access token.
    * @throws {Error} - Throws an error if the token endpoint does not return an OK response.
    **/
   async getToken() {
     if (this.token && Date.now() < this.tokenExpiresAt) {
+      return this.token;
+    }
+
+    const cached = this._readCachedToken();
+    if (cached) {
+      this.log.info(`Using cached rosetta OAuth token from disk: ${this.tokenCachePath}`);
+      this.token = cached.accessToken;
+      this.tokenExpiresAt = cached.expiresAt;
       return this.token;
     }
 
@@ -86,6 +149,7 @@ export class Rosetta {
     this.token = res.access_token;
     // subtract a small safety buffer so we refresh slightly before actual expiry
     this.tokenExpiresAt = Date.now() + (res.expires_in * 1000) - 5000;
+    this._writeCachedToken();
 
     return this.token;
   }
@@ -117,6 +181,48 @@ export class Rosetta {
   }
 
   /**
+   * @function _authedFetch
+   * @description Perform a fetch against the Rosetta API with the current bearer token. If the
+   * server rejects the (possibly disk-cached) token with a 401 - e.g. it was revoked server-side
+   * before its recorded expiry - invalidate the cached token and retry exactly once with a
+   * freshly-fetched one.
+   * @param {string} url - Fully-qualified URL to fetch.
+   * @param {Object} [fetchOpts={}] - node-fetch options, excluding the Authorization header.
+   * @returns {Promise<Object>} - The parsed JSON response body.
+   * @throws {Error} - Throws an error if the final response (after at most one retry) is not OK.
+   **/
+  async _authedFetch(url, fetchOpts = {}) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const token = await this.getToken();
+      const response = await fetch(url, {
+        ...fetchOpts,
+        headers: {
+          ...(fetchOpts.headers || {}),
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.status === 401 && attempt === 0) {
+        this.log.warn(`Rosetta API rejected cached token with 401, invalidating and retrying: ${url}`);
+        this._invalidateToken();
+        continue;
+      }
+
+      if (response.status !== 200) {
+        let body;
+        try {
+          body = await response.text();
+        } catch (e) {
+          body = '<no response body>';
+        }
+        throw new Error(`Did not get an OK from the server. Code: ${response.status}. Body: ${body}`);
+      }
+
+      return await response.json();
+    }
+  }
+
+  /**
    * @function people
    * @description Fetch person records via GET, using arbitrary query-parameter filters.
    * Transforms/result-shape interpretation are deferred to a later change - this returns
@@ -129,28 +235,11 @@ export class Rosetta {
    * @throws {Error} - Throws an error if the response is not OK.
    **/
   async people(filters = {}, opts = {}) {
-    const token = await this.getToken();
     const url = this.buildUrl(opts.endpoint || 'people', filters);
 
     this.log.info(`Fetching rosetta people from: ${url}`);
 
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-
-    if (response.status !== 200) {
-      let body;
-      try {
-        body = await response.text();
-      } catch (e) {
-        body = '<no response body>';
-      }
-      throw new Error(`Did not get an OK from the server. Code: ${response.status}. Body: ${body}`);
-    }
-
-    return await response.json();
+    return this._authedFetch(url);
   }
 
   /**
@@ -214,7 +303,6 @@ export class Rosetta {
    * @throws {Error} - Throws an error if the response is not OK.
    **/
   async peopleSearch(body = {}, opts = {}) {
-    const token = await this.getToken();
     const path = this.endpoints[opts.endpoint || 'people'];
     if (!path) {
       throw new Error(`Invalid rosetta endpoint: ${opts.endpoint}`);
@@ -223,26 +311,13 @@ export class Rosetta {
 
     this.log.info(`Searching rosetta people at: ${url}`);
 
-    const response = await fetch(url, {
+    return this._authedFetch(url, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(body)
     });
-
-    if (response.status !== 200) {
-      let body;
-      try {
-        body = await response.text();
-      } catch (e) {
-        body = '<no response body>';
-      }
-      throw new Error(`Did not get an OK from the server. Code: ${response.status}. Body: ${body}`);
-    }
-
-    return await response.json();
   }
 }
 
