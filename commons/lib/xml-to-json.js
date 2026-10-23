@@ -32,6 +32,12 @@ const xmlParser = new XMLParser({
   removeNSPrefix: false,
 
   allowBooleanAttributes: true,
+
+  // fast-xml-parser >= 4.5.4 caps total entity expansions per document at 1000
+  processEntities: {
+    enabled: true,
+    maxTotalExpansions: 1000000,
+  },
 });
 
 /**
