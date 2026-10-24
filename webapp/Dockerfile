@@ -1,4 +1,4 @@
-FROM node:20.19.4
+FROM node:22
 
 # Set the working directory
 WORKDIR /opt/webapp
