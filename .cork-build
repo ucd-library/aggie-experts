@@ -41,6 +41,9 @@
           "POSTGRES_IMAGE=${project-anduin.anduin-pg}"
         ]
       }
+    },
+    "cf-reporting" : {
+      "contextPath" : "./cf-reporting"
     }
   }
 }

@@ -1,0 +1,26 @@
+{
+  "name": "cf-reporting",
+  "version": "0.1.0",
+  "description": "CLI to export Aggie Experts Cloudflare analytics as CSV reports",
+  "type": "module",
+  "bin": {
+    "cf-reporting": "./bin/cf-reporting.js"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "@google-cloud/storage": "^7.7.0",
+    "archiver": "^8.0.0",
+    "commander": "^14.0.1",
+    "csv-stringify": "^6.5.0",
+    "dotenv": "^17.0.0"
+  },
+  "devDependencies": {
+    "mocha": "^11.0.0"
+  },
+  "mocha": {
+    "spec": "tests/**/*.test.js",
+    "timeout": 10000
+  }
+}
