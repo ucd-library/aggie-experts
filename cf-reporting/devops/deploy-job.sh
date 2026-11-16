@@ -13,13 +13,10 @@ REGION="us-west1"
 BUCKET="cf-reports"
 JOB_NAME="cf-reporting-export"
 JOB_SA_EMAIL="cf-reporting-job@${PROJECT_ID}.iam.gserviceaccount.com"
-SECRET_NAME="cf-reporting-api-token"
 IMAGE="us-west1-docker.pkg.dev/${PROJECT_ID}/pub/cf-reporting:${VERSION}"
 
-# CF_ACCOUNT_ID, CF_ZONE_ID and CF_APP_NAME are not secret - fill in the real
-# values for the zone being reported on before running this script.
-CF_ACCOUNT_ID="${CF_ACCOUNT_ID:?set CF_ACCOUNT_ID in your shell before running this script}"
-CF_ZONE_ID="${CF_ZONE_ID:?set CF_ZONE_ID in your shell before running this script}"
+# CF_API_TOKEN, CF_ACCOUNT_ID and CF_ZONE_ID are read at runtime from Secret
+# Manager secrets of the same name. CF_APP_NAME is the only local override.
 CF_APP_NAME="${CF_APP_NAME:-aggie-experts}"
 
 gcloud run jobs deploy "${JOB_NAME}" \
@@ -27,8 +24,8 @@ gcloud run jobs deploy "${JOB_NAME}" \
   --region="${REGION}" \
   --image="${IMAGE}" \
   --service-account="${JOB_SA_EMAIL}" \
-  --set-env-vars="CF_ACCOUNT_ID=${CF_ACCOUNT_ID},CF_ZONE_ID=${CF_ZONE_ID},CF_APP_NAME=${CF_APP_NAME},AE_AF_GCS_BUCKET=${BUCKET},AE_AF_DEFAULT_DAYS=30" \
-  --set-secrets="CF_API_TOKEN=${SECRET_NAME}:latest" \
+  --set-env-vars="CF_APP_NAME=${CF_APP_NAME},AE_AF_GCS_BUCKET=${BUCKET},AE_AF_DEFAULT_DAYS=30" \
+  --set-secrets="CF_API_TOKEN=CF_API_TOKEN:latest,CF_ACCOUNT_ID=CF_ACCOUNT_ID:latest,CF_ZONE_ID=CF_ZONE_ID:latest" \
   --max-retries=1 \
   --task-timeout=10m \
   --memory=512Mi \
