@@ -129,7 +129,10 @@ describe('lib/views/*.js', () => {
   describe('global status class filter', () => {
     // country-breakdown is excluded: httpRequests1dGroups's filter type has no
     // edgeResponseStatus field, so that view can't be filtered by status class.
-    const statusFilterableViews = Object.entries(VIEWS).filter(([name]) => name !== 'country-breakdown');
+    // integration-api-calls is excluded on purpose: it reports every status
+    // class, grouped, so failed requests are visible.
+    const statusUnfilteredViews = ['country-breakdown', 'integration-api-calls'];
+    const statusFilterableViews = Object.entries(VIEWS).filter(([name]) => !statusUnfilteredViews.includes(name));
 
     it('every status-filterable view defaults to edgeResponseStatus in [200, 300) (config default 2xx)', () => {
       for (const [name, view] of statusFilterableViews) {
@@ -156,6 +159,44 @@ describe('lib/views/*.js', () => {
 
     it('buildStatusClassFilter throws on an invalid class', () => {
       assert.throws(() => buildStatusClassFilter({ statusClass: '9xx' }), /Invalid statusClass/);
+    });
+  });
+
+  describe('integration-api-calls', () => {
+    it('builds a date-range + sitefarm/miv path filter with no status or bot score filter', () => {
+      const plan = VIEWS['integration-api-calls'].buildQuery({ ...filters, statusClass: '2xx', botScoreThreshold: 30 });
+      assert.strictEqual(plan.datasetField, 'httpRequestsAdaptiveGroups');
+      assert.ok('datetime_geq' in plan.filter);
+      assert.ok('datetime_lt' in plan.filter);
+      assert.deepStrictEqual(plan.filter.OR, [
+        { clientRequestPath_in: ['/api/sitefarm', '/api/miv'] },
+        { clientRequestPath_like: '/api/sitefarm/%' },
+        { clientRequestPath_like: '/api/miv/%' }
+      ]);
+      assert.ok(!('edgeResponseStatus_geq' in plan.filter));
+      assert.ok(!('edgeResponseStatus_lt' in plan.filter));
+      assert.ok(!('botScore_geq' in plan.filter));
+      assert.ok(!('botScore_lt' in plan.filter));
+      assert.deepStrictEqual(plan.orderBy, ['count_DESC']);
+    });
+
+    it('does not require Bot Management', () => {
+      assert.strictEqual(VIEWS['integration-api-calls'].requiresBotManagement, false);
+    });
+
+    it('maps rows to {type, path, statusClass, calls}, merging statuses of the same class', () => {
+      const rows = VIEWS['integration-api-calls'].toRows([
+        { count: 9, dimensions: { clientRequestPath: '/api/miv/grants', edgeResponseStatus: 200 } },
+        { count: 4, dimensions: { clientRequestPath: '/api/sitefarm/experts/1,2', edgeResponseStatus: 401 } },
+        { count: 3, dimensions: { clientRequestPath: '/api/sitefarm/experts/1,2', edgeResponseStatus: 404 } },
+        { count: 2, dimensions: { clientRequestPath: '/api/miv', edgeResponseStatus: 500 } },
+        { count: 1, dimensions: { clientRequestPath: '/api/miv/grants', edgeResponseStatus: 204 } }
+      ]);
+      assert.deepStrictEqual(rows, [
+        { type: 'miv', path: '/api/miv/grants', statusClass: '2xx', calls: 10 },
+        { type: 'sitefarm', path: '/api/sitefarm/experts/1,2', statusClass: '4xx', calls: 7 },
+        { type: 'miv', path: '/api/miv', statusClass: '5xx', calls: 2 }
+      ]);
     });
   });
 

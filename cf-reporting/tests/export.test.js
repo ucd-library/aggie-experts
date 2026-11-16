@@ -50,7 +50,7 @@ describe('lib/commands/export.js', () => {
 
     assert.strictEqual(path.basename(folderPath), 'my-app-2026-01-01-2026-01-01');
     const files = await fs.promises.readdir(folderPath);
-    assert.strictEqual(files.length, 7);
+    assert.strictEqual(files.length, 8);
     assert.ok(files.includes('top-pages.csv'));
     assert.ok(files.includes('country-breakdown.csv'));
   });
@@ -80,7 +80,7 @@ describe('lib/commands/export.js', () => {
     });
 
     const files = await fs.promises.readdir(folderPath);
-    assert.deepStrictEqual(files.sort(), ['api-calls.csv', 'country-breakdown.csv', 'top-pages.csv']);
+    assert.deepStrictEqual(files.sort(), ['api-calls.csv', 'country-breakdown.csv', 'integration-api-calls.csv', 'top-pages.csv']);
   });
 
   it('zips the output folder and deletes the unzipped copy when --zip is set', async () => {
@@ -155,7 +155,7 @@ describe('lib/commands/export.js', () => {
     });
 
     const files = await fs.promises.readdir(folderPath);
-    assert.deepStrictEqual(files.sort(), ['api-calls.csv', 'country-breakdown.csv', 'top-pages.csv']);
+    assert.deepStrictEqual(files.sort(), ['api-calls.csv', 'country-breakdown.csv', 'integration-api-calls.csv', 'top-pages.csv']);
     assert.deepStrictEqual(skippedViews.sort(), [
       'bot-page-views',
       'human-page-views',

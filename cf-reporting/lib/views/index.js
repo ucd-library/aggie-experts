@@ -5,6 +5,7 @@ import uniqueBotVisitorsView from './unique-bot-visitors.js';
 import uniqueHumanVisitorsView from './unique-human-visitors.js';
 import topPagesView from './top-pages.js';
 import countryBreakdownView from './country-breakdown.js';
+import integrationApiCallsView from './integration-api-calls.js';
 
 /**
  * @typedef {import('./filters.js').ViewFilters} ViewFilters
@@ -29,7 +30,8 @@ export const VIEWS = {
   'unique-bot-visitors': uniqueBotVisitorsView,
   'unique-human-visitors': uniqueHumanVisitorsView,
   'top-pages': topPagesView,
-  'country-breakdown': countryBreakdownView
+  'country-breakdown': countryBreakdownView,
+  'integration-api-calls': integrationApiCallsView
 };
 
 /**

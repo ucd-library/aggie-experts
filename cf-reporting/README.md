@@ -20,7 +20,7 @@ All other `.env.example` variables are optional overrides with sane defaults (co
 ## Usage
 
 ```bash
-# Default: last 30 days, all 7 precooked views, written to ./<app-name>-<start>-<end>/
+# Default: last 30 days, all 8 precooked views, written to ./<app-name>-<start>-<end>/
 cf-reporting export
 
 # Last 7 days, zipped (the plain folder is deleted after zipping)
@@ -58,6 +58,7 @@ Run `cf-reporting <command> --help` for a command's full option list.
 | `unique-human-visitors` | Daily unique human visitors, approximated by distinct client IPs |
 | `top-pages` | Top N pages by views (default 50, override with `--limit`) |
 | `country-breakdown` | Request totals by country over the date range |
+| `integration-api-calls` | Count of requests to `/api/sitefarm` and `/api/miv` (and child paths) by path and status class, with a `type` column of `sitefarm` or `miv`. Humans and bots combined. Includes every status class, not just the configured one, so failed requests are visible |
 
 ### Bot Management requirement
 
